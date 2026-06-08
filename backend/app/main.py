@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import validate_database_connection
 from app.routers.health import router as health_router
+from app.routers.upload import router as upload_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -45,3 +46,4 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(upload_router)

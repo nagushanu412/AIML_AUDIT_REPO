@@ -28,3 +28,15 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 - `GET http://localhost:8000/health` — API status
 - `GET http://localhost:8000/health/db` — Database connection + table verification
+
+## Upload journal entries
+
+`POST http://localhost:8000/upload` — multipart form with `file` (.xlsx)
+
+Required columns: `Journal_ID`, `Posting_Date`, `Account_Code`, `Account_Name`, `Amount`, `Debit_Credit`, `User_ID`, `Description`
+
+Optional query: `?project_id=<uuid>` (uses default project if omitted)
+
+```bash
+curl -X POST "http://localhost:8000/upload" -F "file=@../database/sample_journal_entries.xlsx"
+```
