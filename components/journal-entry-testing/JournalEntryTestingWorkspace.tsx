@@ -94,9 +94,9 @@ export function JournalEntryTestingWorkspace() {
     }
     fetchProjects(selectedEngagementId)
       .then((rows) => {
-        setProjects(rows);
-        const journal = rows.find((p) => p.project_type === "journal_testing") ?? rows[0];
-        setProjectId(journal?.id ?? "");
+        const journalProjects = rows.filter((p) => p.project_type === "journal_testing");
+        setProjects(journalProjects);
+        setProjectId(journalProjects[0]?.id ?? "");
       })
       .catch(() => setLoadError("Could not load audit projects."));
   }, [selectedEngagementId]);

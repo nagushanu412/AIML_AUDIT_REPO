@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -13,6 +14,25 @@ import {
   updateProject,
 } from "@/lib/api";
 import type { ApiProject } from "@/lib/api/types";
+import {
+  formatModuleList,
+  formatProjectType,
+  getModulesForProjectType,
+  WORKSTREAM_CONFIG,
+} from "@/lib/dashboard/projectModuleMap";
+
+function workstreamHref(projectType: string): string | null {
+  if (projectType === "journal_testing") {
+    return "/dashboard/ai-modules/journal-entry-testing";
+  }
+  if (projectType === "revenue_testing") {
+    return WORKSTREAM_CONFIG.revenue_testing.href;
+  }
+  if (projectType === "procurement_testing") {
+    return WORKSTREAM_CONFIG.procurement_testing.href;
+  }
+  return null;
+}
 
 export function ProjectsList() {
   const [projects, setProjects] = useState<ApiProject[]>([]);
@@ -94,6 +114,44 @@ export function ProjectsList() {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <p className="font-medium text-slate-900">Project types and AI Audit Modules</p>
+        <ul className="mt-2 space-y-1.5">
+          <li>
+            <strong>Journal Testing</strong> → #1 Journal Entry Testing —{" "}
+            <Link
+              href="/dashboard/ai-modules/journal-entry-testing"
+              className="text-brand-600 underline"
+            >
+              Journal workspace
+            </Link>
+          </li>
+          <li>
+            <strong>Revenue Testing</strong> → #20 Invoice Checking, #13 Customer Balance
+            Confirmation —{" "}
+            <Link href="/dashboard/ai-modules/revenue-testing" className="text-brand-600 underline">
+              Revenue workspace
+            </Link>{" "}
+            (not Journal Entry Testing)
+          </li>
+          <li>
+            <strong>Procurement Testing</strong> → #5 Purchase Order Matching, #6 Vendor Invoice
+            Validation, #7 Duplicate Payment Checking —{" "}
+            <Link
+              href="/dashboard/ai-modules/procurement-testing"
+              className="text-brand-600 underline"
+            >
+              Procurement workspace
+            </Link>{" "}
+            (not Journal Entry Testing)
+          </li>
+        </ul>
+        <p className="mt-2 text-xs text-slate-500">
+          Each project type links to modules from the 20-module catalog. Journal Entry Testing
+          uses journal testing projects only.
+        </p>
+      </div>
+
       <div className="flex justify-end">
         <Button type="button" variant="primary" size="sm" onClick={() => setShowForm((v) => !v)}>
           {showForm ? "Cancel" : "Add Project"}
@@ -139,6 +197,9 @@ export function ProjectsList() {
               <option value="revenue_testing">Revenue Testing</option>
               <option value="procurement_testing">Procurement Testing</option>
             </select>
+            <p className="mt-1.5 text-xs text-slate-500">
+              Linked modules: {formatModuleList(getModulesForProjectType(projectType))}
+            </p>
           </div>
           {editingId && (
             <div>
@@ -173,6 +234,8 @@ export function ProjectsList() {
               <th className="px-4 py-3 text-left font-medium text-slate-600">Project</th>
               <th className="px-4 py-3 text-left font-medium text-slate-600">Engagement</th>
               <th className="px-4 py-3 text-left font-medium text-slate-600">Type</th>
+              <th className="px-4 py-3 text-left font-medium text-slate-600">AI Modules</th>
+              <th className="px-4 py-3 text-left font-medium text-slate-600">Workspace</th>
               <th className="px-4 py-3 text-left font-medium text-slate-600">Entries</th>
               <th className="px-4 py-3 text-left font-medium text-slate-600">Status</th>
               <th className="px-4 py-3 text-right font-medium text-slate-600">Actions</th>
@@ -185,7 +248,22 @@ export function ProjectsList() {
                 <td className="px-4 py-3 text-slate-600">
                   {engagementLabels[p.engagement_id] ?? p.engagement_id.slice(0, 8)}
                 </td>
-                <td className="px-4 py-3 text-slate-600">{p.project_type}</td>
+                <td className="px-4 py-3 text-slate-600">{formatProjectType(p.project_type)}</td>
+                <td className="max-w-xs px-4 py-3 text-xs text-slate-500">
+                  {formatModuleList(getModulesForProjectType(p.project_type))}
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  {workstreamHref(p.project_type) ? (
+                    <Link
+                      href={workstreamHref(p.project_type)!}
+                      className="font-medium text-brand-600 hover:underline"
+                    >
+                      Open
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td className="px-4 py-3 text-slate-600">{p.total_entries}</td>
                 <td className="px-4 py-3 capitalize text-slate-600">{p.status}</td>
                 <td className="px-4 py-3 text-right">
