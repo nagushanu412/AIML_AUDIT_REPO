@@ -98,8 +98,8 @@ export function FindingsTable({ findings }: FindingsTableProps) {
 
   return (
     <SectionCard
-      title="Findings"
-      description="AI-flagged journal entries ranked by risk score."
+      title="High-Risk Journal Entries"
+      description="Entry-level risk scores from rule violations — drill down by voucher and account."
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">

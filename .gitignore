@@ -27,6 +27,7 @@ yarn-error.log*
 .env*.local
 .env
 backend/.env
+backend/generated_reports/
 
 # python
 __pycache__/

@@ -133,10 +133,26 @@ def validate_excel(file_bytes: bytes) -> tuple[ValidationResult, pd.DataFrame | 
                 )
             )
 
+    total_debit = 0.0
+    total_credit = 0.0
+    if len(errors) == 0:
+        for _, row in df.iterrows():
+            amount = _parse_amount(row["Amount"])
+            if amount is None:
+                continue
+            amt = float(abs(amount))
+            dc = str(row["Debit_Credit"]).strip().upper()
+            if dc in {"DEBIT", "D"}:
+                total_debit += amt
+            else:
+                total_credit += amt
+
     return (
         ValidationResult(
             is_valid=len(errors) == 0,
             total_rows=len(df),
+            total_debit=total_debit,
+            total_credit=total_credit,
             errors=errors,
             warnings=warnings,
         ),

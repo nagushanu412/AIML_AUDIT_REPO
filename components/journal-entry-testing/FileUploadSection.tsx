@@ -47,12 +47,12 @@ export function FileUploadSection({
         return;
       }
 
-      // TODO: POST multipart upload to Django API — /api/journal-entries/upload/
       onFileChange({
         name: raw.name,
-        sizeBytes: raw.size || 2.5 * 1024 * 1024,
-        recordCount: 25432,
+        sizeBytes: raw.size,
+        recordCount: 0,
         uploadedAt: new Date(),
+        rawFile: raw,
       });
     },
     [onFileChange]
@@ -78,13 +78,7 @@ export function FileUploadSection({
 
   const loadMockFile = () => {
     setError(null);
-    // TODO: Replace with Django API response after file validation
-    onFileChange({
-      name: "Journal_Entries.xlsx",
-      sizeBytes: 2.5 * 1024 * 1024,
-      recordCount: 25432,
-      uploadedAt: new Date(),
-    });
+    setError("Use Upload File to select database/sample_journal_entries.xlsx from your machine.");
   };
 
   return (

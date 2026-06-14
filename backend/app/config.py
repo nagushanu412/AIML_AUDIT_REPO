@@ -25,6 +25,17 @@ class Settings(BaseSettings):
         default="http://localhost:3000",
         alias="CORS_ORIGINS",
     )
+    jwt_secret_key: str = Field(
+        default="change-me-in-production-use-openssl-rand-hex-32",
+        alias="JWT_SECRET_KEY",
+    )
+    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
+    jwt_expire_minutes: int = Field(default=60, alias="JWT_EXPIRE_MINUTES")
+    jwt_refresh_expire_days: int = Field(default=7, alias="JWT_REFRESH_EXPIRE_DAYS")
+    demo_user_email: str = Field(
+        default="auditor@demo.auditai.com", alias="DEMO_USER_EMAIL"
+    )
+    demo_user_password: str = Field(default="AuditAI2026!", alias="DEMO_USER_PASSWORD")
 
     @property
     def sqlalchemy_database_url(self) -> str:

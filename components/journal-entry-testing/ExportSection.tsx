@@ -4,35 +4,45 @@ import { useState } from "react";
 import { FileDown, FileSpreadsheet, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { SectionCard } from "@/components/journal-entry-testing/SectionCard";
+import { generateReport } from "@/lib/api";
 
 interface ExportSectionProps {
+  projectId: string;
   disabled?: boolean;
 }
 
-export function ExportSection({ disabled = false }: ExportSectionProps) {
+const REPORT_TYPES = {
+  excel: "journal_audit_excel",
+  pdf: "journal_audit_pdf",
+  wp: "working_paper",
+} as const;
+
+export function ExportSection({ projectId, disabled = false }: ExportSectionProps) {
   const [exporting, setExporting] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleExport = async (type: "excel" | "pdf" | "wp") => {
+  const handleExport = async (type: keyof typeof REPORT_TYPES) => {
     setExporting(type);
     setMessage(null);
+    setError(null);
 
-    // TODO: GET /api/journal-entries/export/?format=excel|pdf|working-paper
-    await new Promise((r) => setTimeout(r, 800));
-
-    const labels = {
-      excel: "Excel report",
-      pdf: "PDF report",
-      wp: "Working paper",
-    };
-    setMessage(`${labels[type]} generated (mock). Download will connect to Django API.`);
-    setExporting(null);
+    try {
+      const report = await generateReport(projectId, REPORT_TYPES[type]);
+      setMessage(
+        `${report.file_name} generated. View it on the Reports page.`
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Export failed.");
+    } finally {
+      setExporting(null);
+    }
   };
 
   return (
     <SectionCard
       title="Export"
-      description="Download analysis results and working papers for the audit file."
+      description="Generate audit reports and working papers for the audit file."
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Button
@@ -70,15 +80,14 @@ export function ExportSection({ disabled = false }: ExportSectionProps) {
         </Button>
       </div>
 
-      {disabled && (
-        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-          Run AI analysis to enable exports.
-        </p>
-      )}
-
       {message && (
         <p className="mt-3 text-sm font-medium text-emerald-600 dark:text-emerald-400">
           {message}
+        </p>
+      )}
+      {error && (
+        <p className="mt-3 text-sm font-medium text-red-600 dark:text-red-400">
+          {error}
         </p>
       )}
     </SectionCard>

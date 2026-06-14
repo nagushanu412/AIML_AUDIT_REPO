@@ -37,6 +37,7 @@ export interface AuthTokens {
 export interface AuthSession {
   user: AuthUser;
   tokens: AuthTokens;
+  rememberMe?: boolean;
 }
 
 export interface AuthResult {

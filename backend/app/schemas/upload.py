@@ -12,6 +12,8 @@ class ValidationErrorItem(BaseModel):
 class ValidationResult(BaseModel):
     is_valid: bool
     total_rows: int = 0
+    total_debit: float = 0
+    total_credit: float = 0
     errors: list[ValidationErrorItem] = Field(default_factory=list)
     warnings: list[ValidationErrorItem] = Field(default_factory=list)
 

@@ -34,11 +34,10 @@ export function AIAnalysisSection({
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-slate-900 dark:text-white">
-              Future Risk Factors (AI/ML Engine)
+              Rule Engine + Risk Scoring
             </p>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {/* TODO: Integrate AIML risk engine — POST /api/journal-entries/analyze/ */}
-              Mock analysis applies the following detection rules:
+              Runs 7 audit rules from rules_master, scores violations, and generates findings.
             </p>
           </div>
         </div>

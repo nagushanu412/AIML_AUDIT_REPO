@@ -7,6 +7,7 @@ import {
   Users,
   BarChart3,
   FolderOpen,
+  Scale,
 } from "lucide-react";
 import type { NavItem } from "./types";
 
@@ -20,10 +21,22 @@ export const DASHBOARD_NAV: NavItem[] = [
     icon: Briefcase,
   },
   {
+    id: "projects",
+    label: "Audit Projects",
+    href: "/dashboard/projects",
+    icon: FileText,
+  },
+  {
     id: "documents",
     label: "Documents",
     href: "/dashboard/documents",
     icon: FolderOpen,
+  },
+  {
+    id: "rules",
+    label: "Audit Rules",
+    href: "/dashboard/rules",
+    icon: Scale,
   },
   {
     id: "ai-modules",

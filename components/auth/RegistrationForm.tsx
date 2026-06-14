@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/auth/PasswordInput";
-import { mockRegister } from "@/lib/auth/mockRegistration";
+import { register } from "@/lib/auth/auth";
 import {
   REGISTRATION_PRODUCT_NAME,
   TRIAL_BADGES,
@@ -77,22 +77,15 @@ export function RegistrationForm() {
     setIsLoading(true);
 
     try {
-      const result = await mockRegister(form);
+      const result = await register(form);
 
       if (result.success) {
-        const emailForLogin = form.businessEmail.trim();
         setSuccessMessage(
-          `Welcome to ${REGISTRATION_PRODUCT_NAME}! Your 14-day free trial is ready. Redirecting to sign in…`
+          `Welcome to ${REGISTRATION_PRODUCT_NAME}! Your auditor account is ready. Redirecting to dashboard…`
         );
         setForm(INITIAL_FORM);
-
-        // Redirect to sign-in with a success banner and optional email prefill.
-        // TODO: After Django integration, redirect after email verification and tenant provisioning.
         setTimeout(() => {
-          const nextUrl = `/?registered=1&email=${encodeURIComponent(
-            emailForLogin
-          )}`;
-          router.push(nextUrl);
+          router.push("/dashboard");
         }, 900);
         return;
       }

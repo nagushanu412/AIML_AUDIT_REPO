@@ -1,6 +1,9 @@
 "use client";
 
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, LogOut, Menu, Search } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/lib/auth/AuthProvider";
+import { getUserInitials } from "@/lib/auth/session";
 import { cn } from "@/lib/utils/cn";
 
 interface DashboardHeaderProps {
@@ -9,11 +12,22 @@ interface DashboardHeaderProps {
   onMenuClick: () => void;
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  auditor: "Auditor",
+  partner: "Partner",
+  manager: "Manager",
+  admin: "Administrator",
+};
+
 export function DashboardHeader({
   title,
   subtitle,
   onMenuClick,
 }: DashboardHeaderProps) {
+  const { session, logout } = useAuth();
+  const user = session?.user;
+  const initials = user ? getUserInitials(user.name) : "AU";
+
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
       <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -63,14 +77,34 @@ export function DashboardHeader({
             <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
           </button>
 
-          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white py-1 pl-1 pr-3">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white py-1 pl-1 pr-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-600 text-xs font-bold text-white">
-              PS
+              {initials}
             </div>
             <div className="hidden sm:block">
-              <p className="text-xs font-semibold text-slate-900">Priya Sharma</p>
-              <p className="text-[11px] text-slate-500">Audit Manager</p>
+              <p className="text-xs font-semibold text-slate-900">{user?.name ?? "Auditor"}</p>
+              <p className="text-[11px] text-slate-500">
+                {user ? (ROLE_LABELS[user.role] ?? user.role) : "Signed in"}
+              </p>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="ml-1 hidden sm:inline-flex"
+              onClick={() => logout()}
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Logout
+            </Button>
+            <button
+              type="button"
+              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 sm:hidden"
+              aria-label="Logout"
+              onClick={() => logout()}
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>

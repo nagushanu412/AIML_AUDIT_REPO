@@ -11,12 +11,12 @@ import { PasswordInput } from "@/components/auth/PasswordInput";
 import { SSOButton } from "@/components/auth/SSOButton";
 import { DEMO_CREDENTIALS, PRODUCT_NAME } from "@/lib/auth/constants";
 import {
+  ensureValidSession,
   getRememberedEmail,
-  mockGoogleSSO,
-  mockLogin,
-  mockMicrosoftSSO,
+  login,
   validateLoginForm,
-} from "@/lib/auth/mockAuth";
+} from "@/lib/auth/auth";
+import { mockGoogleSSO, mockMicrosoftSSO } from "@/lib/auth/mockAuth";
 import type { AuthValidationErrors } from "@/lib/auth/types";
 import { cn } from "@/lib/utils/cn";
 
@@ -39,7 +39,10 @@ export function LoginForm() {
       setEmail(remembered);
       setRememberMe(true);
     }
-  }, []);
+    ensureValidSession().then((session) => {
+      if (session) router.replace("/dashboard");
+    });
+  }, [router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,30 +80,32 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      const result = await mockLogin({ email, password, rememberMe });
-
-      if (result.requiresMfa) {
-        setFormError("Two-factor authentication required. MFA flow not yet implemented.");
-        return;
-      }
-
-      if (!result.subscriptionValid) {
-        setFormError("Your subscription is inactive. Please contact your administrator.");
-        return;
-      }
+      const result = await login({ email, password, rememberMe });
 
       if (result.success && result.session) {
         setSuccessMessage(
           `Welcome back, ${result.session.user.name}. Redirecting to dashboard…`
         );
-        // TODO: After Django integration, route to firm-specific dashboard using organizationId.
         setTimeout(() => {
           router.push("/dashboard");
         }, 700);
         return;
       }
 
-      setFormError(result.error ?? "Sign in failed. Please try again.");
+      if (result.requiresMfa) {
+        setFormError("Two-factor authentication required. MFA flow not yet implemented.");
+        return;
+      }
+
+      if (result.subscriptionValid === false) {
+        setFormError("Your subscription is inactive. Please contact your administrator.");
+        return;
+      }
+
+      setFormError(
+        result.error ??
+          "Sign in failed. Ensure the API is running at http://localhost:8000 and try again."
+      );
     } catch {
       setFormError("An unexpected error occurred. Please try again.");
     } finally {

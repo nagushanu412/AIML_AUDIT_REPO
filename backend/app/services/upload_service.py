@@ -1,51 +1,12 @@
 from __future__ import annotations
 
-import uuid
-from datetime import date
 from decimal import Decimal
 
 import pandas as pd
 from sqlalchemy.orm import Session
 
-from app.models.audit import AuditProject, JournalEntry, User
+from app.models.audit import AuditProject, JournalEntry
 from app.services.excel_validator import normalize_dataframe
-
-
-def get_or_create_default_project(db: Session) -> AuditProject:
-    project = db.query(AuditProject).order_by(AuditProject.created_at).first()
-    if project:
-        return project
-
-    user = db.query(User).first()
-    if not user:
-        user = User(
-            email="auditor@demo.auditai.com",
-            password_hash="pending",
-            full_name="Demo Auditor",
-            role="auditor",
-        )
-        db.add(user)
-        db.flush()
-
-    project = AuditProject(
-        name="Default Journal Entry Audit",
-        client_name="Default Client",
-        financial_year_end=date(2025, 3, 31),
-        large_value_threshold=Decimal("100000.00"),
-        user_id=user.id,
-    )
-    db.add(project)
-    db.flush()
-    return project
-
-
-def resolve_project(db: Session, project_id: uuid.UUID | None) -> AuditProject:
-    if project_id:
-        project = db.query(AuditProject).filter(AuditProject.id == project_id).first()
-        if not project:
-            raise ValueError(f"Audit project not found: {project_id}")
-        return project
-    return get_or_create_default_project(db)
 
 
 def save_journal_entries(

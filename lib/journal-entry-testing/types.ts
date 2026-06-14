@@ -18,6 +18,7 @@ export interface UploadedFileInfo {
   sizeBytes: number;
   recordCount: number;
   uploadedAt: Date;
+  rawFile?: File;
 }
 
 export interface ValidationSummary {

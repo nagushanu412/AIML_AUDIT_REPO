@@ -5,7 +5,6 @@ import {
   FileText,
   Users,
 } from "lucide-react";
-import { RECENT_ACTIVITIES } from "@/lib/dashboard/mockData";
 import type { RecentActivity } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils/cn";
 
@@ -25,7 +24,13 @@ const ACTIVITY_COLORS: Record<RecentActivity["type"], string> = {
   module: "bg-brand-50 text-brand-600 ring-brand-100",
 };
 
-export function RecentActivities() {
+interface RecentActivitiesProps {
+  items: RecentActivity[];
+}
+
+export function RecentActivities({ items }: RecentActivitiesProps) {
+  const activities = items;
+
   return (
     <section
       className="rounded-xl border border-slate-200/80 bg-white shadow-sm"
@@ -43,8 +48,13 @@ export function RecentActivities() {
         </p>
       </div>
 
+      {activities.length === 0 ? (
+        <p className="px-5 py-8 text-center text-sm text-slate-500 sm:px-6">
+          No recent project activity yet. Upload journal entries to see updates here.
+        </p>
+      ) : (
       <ul className="divide-y divide-slate-100" role="list">
-        {RECENT_ACTIVITIES.map((activity) => {
+        {activities.map((activity) => {
           const Icon = ACTIVITY_ICONS[activity.type];
 
           return (
@@ -71,6 +81,7 @@ export function RecentActivities() {
           );
         })}
       </ul>
+      )}
     </section>
   );
 }
