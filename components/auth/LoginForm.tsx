@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { SSOButton } from "@/components/auth/SSOButton";
 import { DEMO_CREDENTIALS, PRODUCT_NAME } from "@/lib/auth/constants";
+import { API_BASE_URL } from "@/lib/api/config";
 import {
   ensureValidSession,
   getRememberedEmail,
@@ -104,7 +105,7 @@ export function LoginForm() {
 
       setFormError(
         result.error ??
-          "Sign in failed. Ensure the API is running at http://localhost:8000 and try again."
+          `Sign in failed. Ensure the API is reachable at ${API_BASE_URL} and try again.`
       );
     } catch {
       setFormError("An unexpected error occurred. Please try again.");

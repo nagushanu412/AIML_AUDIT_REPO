@@ -1,7 +1,16 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEFAULT_JWT_SECRET = "change-me-in-production-use-openssl-rand-hex-32"
+
+
+def normalize_database_url(url: str) -> str:
+    """Railway and other hosts may provide postgres:// — SQLAlchemy needs postgresql://."""
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url
 
 
 class Settings(BaseSettings):
@@ -10,6 +19,8 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    environment: str = Field(default="development", alias="ENVIRONMENT")
 
     postgres_host: str = Field(default="localhost", alias="POSTGRES_HOST")
     postgres_port: int = Field(default=5432, alias="POSTGRES_PORT")
@@ -20,13 +31,20 @@ class Settings(BaseSettings):
     database_url: str | None = Field(default=None, alias="DATABASE_URL")
 
     api_host: str = Field(default="0.0.0.0", alias="API_HOST")
-    api_port: int = Field(default=8000, alias="API_PORT")
+    api_port: int = Field(
+        default=8000,
+        validation_alias=AliasChoices("PORT", "API_PORT"),
+    )
     cors_origins: str = Field(
         default="http://localhost:3000",
         alias="CORS_ORIGINS",
     )
+    cors_origin_regex: str | None = Field(
+        default=None,
+        alias="CORS_ORIGIN_REGEX",
+    )
     jwt_secret_key: str = Field(
-        default="change-me-in-production-use-openssl-rand-hex-32",
+        default=_DEFAULT_JWT_SECRET,
         alias="JWT_SECRET_KEY",
     )
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
@@ -36,11 +54,16 @@ class Settings(BaseSettings):
         default="auditor@demo.auditai.com", alias="DEMO_USER_EMAIL"
     )
     demo_user_password: str = Field(default="AuditAI2026!", alias="DEMO_USER_PASSWORD")
+    max_upload_mb: int = Field(default=10, alias="MAX_UPLOAD_MB")
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.lower() in ("production", "prod")
 
     @property
     def sqlalchemy_database_url(self) -> str:
         if self.database_url:
-            return self.database_url
+            return normalize_database_url(self.database_url)
         return (
             f"postgresql://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
@@ -49,6 +72,14 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def max_upload_bytes(self) -> int:
+        return self.max_upload_mb * 1024 * 1024
+
+    @property
+    def uses_default_jwt_secret(self) -> bool:
+        return self.jwt_secret_key == _DEFAULT_JWT_SECRET
 
 
 @lru_cache

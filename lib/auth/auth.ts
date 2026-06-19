@@ -5,6 +5,7 @@ import {
   refreshTokenApi,
   registerApi,
 } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api/config";
 import type { ApiLoginResponse } from "@/lib/api/types";
 import type { RegistrationFormData } from "./registrationTypes";
 import {
@@ -115,7 +116,7 @@ export async function login(credentials: LoginCredentials): Promise<AuthResult> 
     const message = err instanceof Error ? err.message : "Sign in failed.";
     const hint =
       message === "Failed to fetch" || message.includes("NetworkError")
-        ? "Cannot reach the API. Start the backend: cd backend && .\\.venv\\Scripts\\uvicorn app.main:app --reload --port 8000"
+        ? `Cannot reach the API at ${API_BASE_URL}. Check that the backend is running and CORS is configured.`
         : message;
     return {
       success: false,

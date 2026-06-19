@@ -27,12 +27,14 @@ async def lifespan(app: FastAPI):
     try:
         info = validate_database_connection()
         logger.info(
-            "Database connected: %s@%s:%s/%s",
-            settings.postgres_user,
-            info["host"],
-            info["port"],
+            "Database connected: %s (env=%s)",
             info["database"],
+            settings.environment,
         )
+        if settings.is_production and settings.uses_default_jwt_secret:
+            logger.warning(
+                "JWT_SECRET_KEY is still the default — set a strong secret in production."
+            )
         db = SessionLocal()
         try:
             seed_demo_hierarchy(db)
@@ -60,6 +62,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=settings.cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

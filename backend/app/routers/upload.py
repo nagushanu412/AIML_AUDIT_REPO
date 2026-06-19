@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.database import get_db
 from app.deps import get_current_auditor
 from app.models.audit import User
@@ -37,7 +38,14 @@ async def upload_journal_entries(
 
     project = get_owned_project(db, parsed_project_id, current_user)
 
+    settings = get_settings()
     content = await file.read()
+    if len(content) > settings.max_upload_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size is {settings.max_upload_mb} MB.",
+        )
+
     validation, df = validate_excel(content)
 
     if not validation.is_valid or df is None:
