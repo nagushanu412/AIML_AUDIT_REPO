@@ -12,7 +12,16 @@ from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
 from sqlalchemy.orm import Session
 
-from app.models.audit import AuditFinding, AuditProject, RiskScore, RuleResult
+from app.models.audit import (
+    AuditFinding,
+    AuditProject,
+    ProcurementRiskScore,
+    ProcurementRuleResult,
+    RevenueRiskScore,
+    RevenueRuleResult,
+    RiskScore,
+    RuleResult,
+)
 
 REPORTS_DIR = Path(__file__).resolve().parents[2] / "generated_reports"
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -39,7 +48,119 @@ def _violations_by_rule(db: Session, project_id: uuid.UUID) -> dict[str, int]:
     return counts
 
 
+def _revenue_risk_counts(db: Session, project_id: uuid.UUID) -> dict[str, int]:
+    return {
+        cat: db.query(RevenueRiskScore)
+        .filter(RevenueRiskScore.project_id == project_id, RevenueRiskScore.risk_category == cat)
+        .count()
+        for cat in ("high", "medium", "low")
+    }
+
+
+def _revenue_violations_by_rule(db: Session, project_id: uuid.UUID) -> dict[str, int]:
+    rows = (
+        db.query(RevenueRuleResult.rule_code)
+        .filter(RevenueRuleResult.project_id == project_id, RevenueRuleResult.triggered.is_(True))
+        .all()
+    )
+    counts: dict[str, int] = {}
+    for (code,) in rows:
+        counts[code] = counts.get(code, 0) + 1
+    return counts
+
+
+def _build_revenue_summary(db: Session, project: AuditProject) -> dict:
+    findings = (
+        db.query(AuditFinding)
+        .filter(AuditFinding.project_id == project.id)
+        .order_by(AuditFinding.created_at.desc())
+        .all()
+    )
+    return {
+        "project_id": str(project.id),
+        "project_name": project.name,
+        "project_type": "revenue_testing",
+        "total_entries": project.total_entries,
+        "violations": db.query(RevenueRuleResult)
+        .filter(RevenueRuleResult.project_id == project.id, RevenueRuleResult.triggered.is_(True))
+        .count(),
+        "risk_distribution": _revenue_risk_counts(db, project.id),
+        "violations_by_rule": _revenue_violations_by_rule(db, project.id),
+        "findings_count": len(findings),
+        "findings": [
+            {
+                "rule_code": f.rule_code,
+                "title": f.finding_title,
+                "risk_level": f.risk_level,
+                "affected_count": f.affected_count,
+                "observation": f.observation,
+                "recommendation": f.recommendation,
+            }
+            for f in findings
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _procurement_risk_counts(db: Session, project_id: uuid.UUID) -> dict[str, int]:
+    return {
+        cat: db.query(ProcurementRiskScore)
+        .filter(ProcurementRiskScore.project_id == project_id, ProcurementRiskScore.risk_category == cat)
+        .count()
+        for cat in ("high", "medium", "low")
+    }
+
+
+def _procurement_violations_by_rule(db: Session, project_id: uuid.UUID) -> dict[str, int]:
+    rows = (
+        db.query(ProcurementRuleResult.rule_code)
+        .filter(ProcurementRuleResult.project_id == project_id, ProcurementRuleResult.triggered.is_(True))
+        .all()
+    )
+    counts: dict[str, int] = {}
+    for (code,) in rows:
+        counts[code] = counts.get(code, 0) + 1
+    return counts
+
+
+def _build_procurement_summary(db: Session, project: AuditProject) -> dict:
+    findings = (
+        db.query(AuditFinding)
+        .filter(AuditFinding.project_id == project.id)
+        .order_by(AuditFinding.created_at.desc())
+        .all()
+    )
+    return {
+        "project_id": str(project.id),
+        "project_name": project.name,
+        "project_type": "procurement_testing",
+        "total_entries": project.total_entries,
+        "violations": db.query(ProcurementRuleResult)
+        .filter(ProcurementRuleResult.project_id == project.id, ProcurementRuleResult.triggered.is_(True))
+        .count(),
+        "risk_distribution": _procurement_risk_counts(db, project.id),
+        "violations_by_rule": _procurement_violations_by_rule(db, project.id),
+        "findings_count": len(findings),
+        "findings": [
+            {
+                "rule_code": f.rule_code,
+                "title": f.finding_title,
+                "risk_level": f.risk_level,
+                "affected_count": f.affected_count,
+                "observation": f.observation,
+                "recommendation": f.recommendation,
+            }
+            for f in findings
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 def _build_summary(db: Session, project: AuditProject) -> dict:
+    if project.project_type == "revenue_testing":
+        return _build_revenue_summary(db, project)
+    if project.project_type == "procurement_testing":
+        return _build_procurement_summary(db, project)
     findings = (
         db.query(AuditFinding)
         .filter(AuditFinding.project_id == project.id)
@@ -141,12 +262,19 @@ def generate_report_file(
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     safe_name = project.name.replace(" ", "_")
 
-    if report_type in ("journal_audit_excel", "working_paper"):
+    if report_type in (
+        "journal_audit_excel",
+        "working_paper",
+        "revenue_audit_excel",
+        "revenue_working_paper",
+        "procurement_audit_excel",
+        "procurement_working_paper",
+    ):
         ext = "xlsx"
         file_name = f"{safe_name}_{report_type}_{timestamp}.xlsx"
         path = REPORTS_DIR / file_name
         _write_excel(path, summary)
-    elif report_type == "journal_audit_pdf":
+    elif report_type in ("journal_audit_pdf", "revenue_audit_pdf", "procurement_audit_pdf"):
         ext = "pdf"
         file_name = f"{safe_name}_{report_type}_{timestamp}.pdf"
         path = REPORTS_DIR / file_name

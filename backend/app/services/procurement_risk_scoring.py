@@ -1,0 +1,121 @@
+from __future__ import annotations
+
+import uuid
+from collections import defaultdict
+
+from sqlalchemy.orm import Session
+
+from app.models.audit import ProcurementInvoice, ProcurementRiskScore, ProcurementRuleResult, RuleMaster
+
+
+def _category(total: int) -> str:
+    if total >= 40:
+        return "high"
+    if total >= 20:
+        return "medium"
+    return "low"
+
+
+def run_procurement_risk_scoring(db: Session, project_id: uuid.UUID) -> dict:
+    rule_scores = {
+        r.rule_code: r.default_score
+        for r in db.query(RuleMaster).filter(RuleMaster.is_active.is_(True)).all()
+        if r.rule_code.startswith("PROC_")
+    }
+
+    violations = (
+        db.query(ProcurementRuleResult)
+        .filter(
+            ProcurementRuleResult.project_id == project_id,
+            ProcurementRuleResult.triggered.is_(True),
+        )
+        .all()
+    )
+
+    by_invoice: dict[uuid.UUID, dict] = defaultdict(lambda: {"total": 0, "breakdown": {}})
+    for v in violations:
+        score = rule_scores.get(v.rule_code, 10)
+        data = by_invoice[v.procurement_invoice_id]
+        data["total"] += score
+        data["breakdown"][v.rule_code] = data["breakdown"].get(v.rule_code, 0) + score
+
+    db.query(ProcurementRiskScore).filter(ProcurementRiskScore.project_id == project_id).delete()
+
+    invoices = (
+        db.query(ProcurementInvoice)
+        .filter(ProcurementInvoice.project_id == project_id)
+        .order_by(ProcurementInvoice.invoice_date)
+        .all()
+    )
+
+    counts = {"high": 0, "medium": 0, "low": 0}
+    models: list[ProcurementRiskScore] = []
+
+    for inv in invoices:
+        data = by_invoice.get(inv.id, {"total": 0, "breakdown": {}})
+        category = _category(data["total"])
+        counts[category] += 1
+        models.append(
+            ProcurementRiskScore(
+                project_id=project_id,
+                procurement_invoice_id=inv.id,
+                total_score=data["total"],
+                risk_category=category,
+                rule_breakdown=data["breakdown"],
+            )
+        )
+
+    db.add_all(models)
+    db.commit()
+
+    total = len(invoices)
+    return {
+        "project_id": project_id,
+        "total_invoices_scored": total,
+        "high_risk": counts["high"],
+        "medium_risk": counts["medium"],
+        "low_risk": counts["low"],
+        "message": f"Scored {total} invoices: {counts['high']} high, {counts['medium']} medium, {counts['low']} low risk.",
+    }
+
+
+def get_procurement_risk_scores(
+    db: Session,
+    project_id: uuid.UUID,
+    *,
+    risk_category: str | None = None,
+    limit: int = 500,
+    offset: int = 0,
+) -> list[dict]:
+    query = (
+        db.query(ProcurementRiskScore, ProcurementInvoice)
+        .join(ProcurementInvoice, ProcurementInvoice.id == ProcurementRiskScore.procurement_invoice_id)
+        .filter(ProcurementRiskScore.project_id == project_id)
+    )
+    if risk_category:
+        query = query.filter(ProcurementRiskScore.risk_category == risk_category.lower())
+
+    rows = (
+        query.order_by(ProcurementRiskScore.total_score.desc(), ProcurementInvoice.invoice_date.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "id": rs.id,
+            "procurement_invoice_id": rs.procurement_invoice_id,
+            "total_score": rs.total_score,
+            "risk_category": rs.risk_category,
+            "rule_breakdown": rs.rule_breakdown,
+            "invoice_no": inv.invoice_no,
+            "invoice_date": inv.invoice_date,
+            "vendor_name": inv.vendor_name,
+            "po_number": inv.po_number,
+            "total_amount": inv.total_amount,
+            "gst_amount": inv.gst_amount,
+            "payment_status": inv.payment_status,
+        }
+        for rs, inv in rows
+    ]

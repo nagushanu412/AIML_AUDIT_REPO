@@ -148,3 +148,88 @@ export interface ApiLoginResponse {
 export interface ApiMessageResponse {
   message: string;
 }
+
+export interface ApiRevenueUploadResponse {
+  project_id: string;
+  validation: ApiUploadResponse["validation"];
+  invoices_imported: number;
+  total_taxable: number;
+  total_gst: number;
+  total_revenue: number;
+  message: string;
+}
+
+export interface ApiRevenueRunRulesResponse {
+  project_id: string;
+  total_invoices_analyzed: number;
+  total_violations_found: number;
+  violations_by_rule: Record<string, number>;
+  rule_summary: { rule_code: string; rule_name: string; violation_count: number }[];
+  message: string;
+}
+
+export interface ApiRevenueRunRiskResponse {
+  project_id: string;
+  total_invoices_scored: number;
+  high_risk: number;
+  medium_risk: number;
+  low_risk: number;
+  message: string;
+}
+
+export interface ApiRevenueRiskScore {
+  id: string;
+  revenue_invoice_id: string;
+  total_score: number;
+  risk_category: string;
+  rule_breakdown: Record<string, number>;
+  invoice_no: string;
+  invoice_date?: string;
+  customer_name: string;
+  total_amount: number;
+  gst_amount: number;
+  payment_status?: string | null;
+}
+
+export interface ApiProcurementUploadResponse {
+  project_id: string;
+  validation: ApiUploadResponse["validation"];
+  invoices_imported: number;
+  total_taxable: number;
+  total_gst: number;
+  total_spend: number;
+  message: string;
+}
+
+export interface ApiProcurementRunRulesResponse {
+  project_id: string;
+  total_invoices_analyzed: number;
+  total_violations_found: number;
+  violations_by_rule: Record<string, number>;
+  rule_summary: { rule_code: string; rule_name: string; violation_count: number }[];
+  message: string;
+}
+
+export interface ApiProcurementRunRiskResponse {
+  project_id: string;
+  total_invoices_scored: number;
+  high_risk: number;
+  medium_risk: number;
+  low_risk: number;
+  message: string;
+}
+
+export interface ApiProcurementRiskScore {
+  id: string;
+  procurement_invoice_id: string;
+  total_score: number;
+  risk_category: string;
+  rule_breakdown: Record<string, number>;
+  invoice_no: string;
+  invoice_date?: string;
+  vendor_name: string;
+  po_number?: string | null;
+  total_amount: number;
+  gst_amount: number;
+  payment_status?: string | null;
+}

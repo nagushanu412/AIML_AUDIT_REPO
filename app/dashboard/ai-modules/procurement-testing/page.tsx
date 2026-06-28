@@ -1,19 +1,19 @@
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { ProjectTypeWorkspace } from "@/components/audit-workstreams/ProjectTypeWorkspace";
+import { ProcurementTestingWorkspace } from "@/components/procurement-testing/ProcurementTestingWorkspace";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Procurement Testing | AIML Audit",
-  description: "Procurement testing workstream — modules #5, #6, and #7",
+  description: "Enterprise procurement substantive testing — vendor invoice upload, PO matching, duplicate payment detection",
 };
 
 export default function ProcurementTestingPage() {
   return (
     <DashboardShell
       title="Procurement Testing"
-      subtitle="Engagement workstream — not part of Journal Entry Testing"
+      subtitle="Enterprise workstream — vendor invoice register upload, AI analysis, and exception reporting"
     >
-      <ProjectTypeWorkspace workstream="procurement_testing" />
+      <ProcurementTestingWorkspace />
     </DashboardShell>
   );
 }

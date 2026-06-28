@@ -151,6 +151,24 @@ class AuditProject(Base):
     reports: Mapped[list["Report"]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
+    revenue_invoices: Mapped[list["RevenueInvoice"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    revenue_rule_results: Mapped[list["RevenueRuleResult"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    revenue_risk_scores: Mapped[list["RevenueRiskScore"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    procurement_invoices: Mapped[list["ProcurementInvoice"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    procurement_rule_results: Mapped[list["ProcurementRuleResult"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    procurement_risk_scores: Mapped[list["ProcurementRiskScore"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
 
 class JournalEntry(Base):
@@ -298,3 +316,170 @@ class Report(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
 
     project: Mapped["AuditProject"] = relationship(back_populates="reports")
+
+
+class RevenueInvoice(Base):
+    __tablename__ = "revenue_invoices"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    invoice_no: Mapped[str] = mapped_column(String(100), nullable=False)
+    invoice_date: Mapped[date] = mapped_column(Date, nullable=False)
+    customer_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    customer_gstin: Mapped[str | None] = mapped_column(String(50))
+    taxable_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    gst_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    payment_status: Mapped[str | None] = mapped_column(String(50))
+    reference_no: Mapped[str | None] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+    project: Mapped["AuditProject"] = relationship(back_populates="revenue_invoices")
+    rule_results: Mapped[list["RevenueRuleResult"]] = relationship(
+        back_populates="invoice", cascade="all, delete-orphan"
+    )
+    risk_score: Mapped["RevenueRiskScore | None"] = relationship(
+        back_populates="invoice", uselist=False, cascade="all, delete-orphan"
+    )
+
+
+class RevenueRuleResult(Base):
+    __tablename__ = "revenue_rule_results"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    revenue_invoice_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("revenue_invoices.id", ondelete="CASCADE"), nullable=False
+    )
+    rule_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("rules_master.id", ondelete="SET NULL"), nullable=True
+    )
+    rule_code: Mapped[str] = mapped_column(String(50), nullable=False)
+    rule_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    triggered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    details: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+    project: Mapped["AuditProject"] = relationship(back_populates="revenue_rule_results")
+    invoice: Mapped["RevenueInvoice"] = relationship(back_populates="rule_results")
+    rule: Mapped["RuleMaster | None"] = relationship()
+
+
+class RevenueRiskScore(Base):
+    __tablename__ = "revenue_risk_scores"
+    __table_args__ = (
+        UniqueConstraint("project_id", "revenue_invoice_id", name="uq_revenue_risk_project_invoice"),
+        CheckConstraint(
+            "risk_category IN ('low', 'medium', 'high')", name="ck_revenue_risk_category"
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    revenue_invoice_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("revenue_invoices.id", ondelete="CASCADE"), nullable=False
+    )
+    total_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    risk_category: Mapped[str] = mapped_column(String(20), nullable=False)
+    rule_breakdown: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+    project: Mapped["AuditProject"] = relationship(back_populates="revenue_risk_scores")
+    invoice: Mapped["RevenueInvoice"] = relationship(back_populates="risk_score")
+
+
+class ProcurementInvoice(Base):
+    __tablename__ = "procurement_invoices"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    invoice_no: Mapped[str] = mapped_column(String(100), nullable=False)
+    invoice_date: Mapped[date] = mapped_column(Date, nullable=False)
+    vendor_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    vendor_gstin: Mapped[str | None] = mapped_column(String(50))
+    po_number: Mapped[str | None] = mapped_column(String(100))
+    taxable_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    gst_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    payment_status: Mapped[str | None] = mapped_column(String(50))
+    reference_no: Mapped[str | None] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+    project: Mapped["AuditProject"] = relationship(back_populates="procurement_invoices")
+    rule_results: Mapped[list["ProcurementRuleResult"]] = relationship(
+        back_populates="invoice", cascade="all, delete-orphan"
+    )
+    risk_score: Mapped["ProcurementRiskScore | None"] = relationship(
+        back_populates="invoice", uselist=False, cascade="all, delete-orphan"
+    )
+
+
+class ProcurementRuleResult(Base):
+    __tablename__ = "procurement_rule_results"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    procurement_invoice_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("procurement_invoices.id", ondelete="CASCADE"), nullable=False
+    )
+    rule_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("rules_master.id", ondelete="SET NULL"), nullable=True
+    )
+    rule_code: Mapped[str] = mapped_column(String(50), nullable=False)
+    rule_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    triggered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    details: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+    project: Mapped["AuditProject"] = relationship(back_populates="procurement_rule_results")
+    invoice: Mapped["ProcurementInvoice"] = relationship(back_populates="rule_results")
+    rule: Mapped["RuleMaster | None"] = relationship()
+
+
+class ProcurementRiskScore(Base):
+    __tablename__ = "procurement_risk_scores"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id", "procurement_invoice_id", name="uq_procurement_risk_project_invoice"
+        ),
+        CheckConstraint(
+            "risk_category IN ('low', 'medium', 'high')", name="ck_procurement_risk_category"
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    procurement_invoice_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("procurement_invoices.id", ondelete="CASCADE"), nullable=False
+    )
+    total_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    risk_category: Mapped[str] = mapped_column(String(20), nullable=False)
+    rule_breakdown: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+    project: Mapped["AuditProject"] = relationship(back_populates="procurement_risk_scores")
+    invoice: Mapped["ProcurementInvoice"] = relationship(back_populates="risk_score")

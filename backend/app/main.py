@@ -13,6 +13,8 @@ from app.routers.dashboard import router as dashboard_router
 from app.routers.engagements import router as engagements_router
 from app.routers.health import router as health_router
 from app.routers.projects import router as projects_router
+from app.routers.procurement import router as procurement_router
+from app.routers.revenue import router as revenue_router
 from app.routers.rules import router as rules_router
 from app.routers.rules_master import router as rules_master_router
 from app.routers.upload import router as upload_router
@@ -74,6 +76,8 @@ app.include_router(clients_router)
 app.include_router(engagements_router)
 app.include_router(projects_router)
 app.include_router(upload_router)
+app.include_router(revenue_router)
+app.include_router(procurement_router)
 app.include_router(rules_router)
 app.include_router(rules_master_router)
 app.include_router(analytics_router)

@@ -9,6 +9,14 @@ import type {
   ApiProject,
   ApiReport,
   ApiRiskScore,
+  ApiProcurementRiskScore,
+  ApiProcurementRunRiskResponse,
+  ApiProcurementRunRulesResponse,
+  ApiProcurementUploadResponse,
+  ApiRevenueRiskScore,
+  ApiRevenueRunRiskResponse,
+  ApiRevenueRunRulesResponse,
+  ApiRevenueUploadResponse,
   ApiRule,
   ApiRuleUpdate,
   ApiRunRiskResponse,
@@ -85,6 +93,70 @@ export function uploadJournalFile(projectId: string, file: File) {
   const form = new FormData();
   form.append("file", file);
   return apiUpload<ApiUploadResponse>(`/upload?project_id=${projectId}`, form);
+}
+
+export function uploadRevenueFile(projectId: string, file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  return apiUpload<ApiRevenueUploadResponse>(`/revenue/upload?project_id=${projectId}`, form);
+}
+
+export function runRevenueRules(projectId: string) {
+  return apiFetch<ApiRevenueRunRulesResponse>(`/revenue/run-rules?project_id=${projectId}`, {
+    method: "POST",
+  });
+}
+
+export function runRevenueRisk(projectId: string) {
+  return apiFetch<ApiRevenueRunRiskResponse>(`/revenue/run-risk?project_id=${projectId}`, {
+    method: "POST",
+  });
+}
+
+export function fetchRevenueRiskScores(projectId: string) {
+  return apiFetch<ApiRevenueRiskScore[]>(`/revenue/risk-scores?project_id=${projectId}`);
+}
+
+export function generateRevenueFindings(projectId: string) {
+  return apiFetch<ApiAuditFinding[]>(`/revenue/generate-findings?project_id=${projectId}`, {
+    method: "POST",
+  });
+}
+
+export function fetchRevenueFindings(projectId: string) {
+  return apiFetch<ApiAuditFinding[]>(`/revenue/findings?project_id=${projectId}`);
+}
+
+export function uploadProcurementFile(projectId: string, file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  return apiUpload<ApiProcurementUploadResponse>(`/procurement/upload?project_id=${projectId}`, form);
+}
+
+export function runProcurementRules(projectId: string) {
+  return apiFetch<ApiProcurementRunRulesResponse>(`/procurement/run-rules?project_id=${projectId}`, {
+    method: "POST",
+  });
+}
+
+export function runProcurementRisk(projectId: string) {
+  return apiFetch<ApiProcurementRunRiskResponse>(`/procurement/run-risk?project_id=${projectId}`, {
+    method: "POST",
+  });
+}
+
+export function fetchProcurementRiskScores(projectId: string) {
+  return apiFetch<ApiProcurementRiskScore[]>(`/procurement/risk-scores?project_id=${projectId}`);
+}
+
+export function generateProcurementFindings(projectId: string) {
+  return apiFetch<ApiAuditFinding[]>(`/procurement/generate-findings?project_id=${projectId}`, {
+    method: "POST",
+  });
+}
+
+export function fetchProcurementFindings(projectId: string) {
+  return apiFetch<ApiAuditFinding[]>(`/procurement/findings?project_id=${projectId}`);
 }
 
 export function runRules(projectId: string) {

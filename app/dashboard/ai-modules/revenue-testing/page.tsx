@@ -1,19 +1,19 @@
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { ProjectTypeWorkspace } from "@/components/audit-workstreams/ProjectTypeWorkspace";
+import { RevenueTestingWorkspace } from "@/components/revenue-testing/RevenueTestingWorkspace";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Revenue Testing | AIML Audit",
-  description: "Revenue testing workstream — modules #13 and #20",
+  description: "Enterprise revenue substantive testing — invoice checking, GST validation, customer balance review",
 };
 
 export default function RevenueTestingPage() {
   return (
     <DashboardShell
       title="Revenue Testing"
-      subtitle="Engagement workstream — not part of Journal Entry Testing"
+      subtitle="Enterprise workstream — sales register upload, AI analysis, and exception reporting"
     >
-      <ProjectTypeWorkspace workstream="revenue_testing" />
+      <RevenueTestingWorkspace />
     </DashboardShell>
   );
 }
