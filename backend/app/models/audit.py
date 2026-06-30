@@ -499,6 +499,214 @@ class EngagementTeamAssignmentHistory(Base):
     changer: Mapped["User | None"] = relationship(foreign_keys=[changed_by])
 
 
+class Evidence(Base):
+    __tablename__ = "evidence"
+    __table_args__ = (
+        CheckConstraint(
+            "category IN ("
+            "'invoice', 'contract', 'correspondence', 'bank_statement', "
+            "'screenshot', 'spreadsheet', 'report', 'other'"
+            ")",
+            name="ck_evidence_category",
+        ),
+        CheckConstraint(
+            "status IN ('active', 'archived')",
+            name="ck_evidence_status",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_projects.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    analysis_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    root_evidence_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("evidence.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category: Mapped[str] = mapped_column(String(50), nullable=False, default="other")
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    storage_key: Mapped[str] = mapped_column(Text, nullable=False)
+    content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    file_size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    file_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    uploaded_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    uploader: Mapped["User | None"] = relationship(foreign_keys=[uploaded_by])
+    links: Mapped[list["EvidenceLink"]] = relationship(
+        back_populates="evidence", cascade="all, delete-orphan"
+    )
+
+
+class Workpaper(Base):
+    __tablename__ = "workpapers"
+    __table_args__ = (
+        CheckConstraint(
+            "category IN ("
+            "'planning', 'risk_assessment', 'testing', 'sampling', "
+            "'completion', 'other'"
+            ")",
+            name="ck_workpapers_category",
+        ),
+        CheckConstraint(
+            "status IN ('draft', 'final', 'archived')",
+            name="ck_workpapers_status",
+        ),
+        UniqueConstraint(
+            "engagement_id",
+            "reference_code",
+            "version_number",
+            name="uq_workpapers_engagement_ref_version",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_projects.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    analysis_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    root_workpaper_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workpapers.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    reference_code: Mapped[str] = mapped_column(String(50), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category: Mapped[str] = mapped_column(String(50), nullable=False, default="testing")
+    file_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    storage_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    file_size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    file_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft")
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    creator: Mapped["User | None"] = relationship(foreign_keys=[created_by])
+
+
+class EvidenceLink(Base):
+    __tablename__ = "evidence_links"
+    __table_args__ = (
+        CheckConstraint(
+            "linked_entity_type IN ('finding', 'workpaper', 'journal_entry', 'transaction')",
+            name="ck_evidence_links_entity_type",
+        ),
+        CheckConstraint(
+            "link_type IN ('supports', 'references', 'attachment')",
+            name="ck_evidence_links_link_type",
+        ),
+        UniqueConstraint(
+            "evidence_id",
+            "linked_entity_type",
+            "linked_entity_id",
+            name="uq_evidence_links_entity",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    evidence_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("evidence.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    finding_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_findings.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    workpaper_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workpapers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    linked_entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    linked_entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    link_type: Mapped[str] = mapped_column(String(50), nullable=False, default="reference")
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+    evidence: Mapped["Evidence"] = relationship(back_populates="links")
+
+
 class AuditProject(Base):
     __tablename__ = "audit_projects"
 

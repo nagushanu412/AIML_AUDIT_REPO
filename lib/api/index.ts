@@ -11,6 +11,11 @@ import type {
   ApiEngagementTeamList,
   ApiEngagementTeamMember,
   ApiEngagementTeamSummary,
+  ApiEvidence,
+  ApiEvidenceLink,
+  ApiEvidenceList,
+  ApiWorkpaper,
+  ApiWorkpaperList,
   ApiMessageResponse,
   ApiInvitePreview,
   ApiAcceptInviteResponse,
@@ -444,6 +449,109 @@ export function fetchEngagementTeamHistory(
   const query = qs.toString();
   return apiFetch<ApiEngagementTeamHistoryList>(
     `/engagements/${engagementId}/team/history${query ? `?${query}` : ""}`
+  );
+}
+
+export function fetchEngagementEvidence(
+  engagementId: string,
+  params?: {
+    project_id?: string;
+    category?: string;
+    status?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }
+) {
+  const qs = new URLSearchParams();
+  if (params?.project_id) qs.set("project_id", params.project_id);
+  if (params?.category) qs.set("category", params.category);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.search) qs.set("search", params.search);
+  if (params?.limit != null) qs.set("limit", String(params.limit));
+  if (params?.offset != null) qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  return apiFetch<ApiEvidenceList>(
+    `/engagements/${engagementId}/evidence${query ? `?${query}` : ""}`
+  );
+}
+
+export function uploadEngagementEvidence(engagementId: string, formData: FormData) {
+  return apiUpload<ApiEvidence>(`/engagements/${engagementId}/evidence`, formData);
+}
+
+export function createEvidenceLink(
+  engagementId: string,
+  evidenceId: string,
+  data: {
+    linked_entity_type: string;
+    linked_entity_id: string;
+    link_type?: string;
+    notes?: string;
+  }
+) {
+  return apiFetch<ApiEvidenceLink>(
+    `/engagements/${engagementId}/evidence/${evidenceId}/links`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+export function fetchEngagementWorkpapers(
+  engagementId: string,
+  params?: {
+    project_id?: string;
+    category?: string;
+    status?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }
+) {
+  const qs = new URLSearchParams();
+  if (params?.project_id) qs.set("project_id", params.project_id);
+  if (params?.category) qs.set("category", params.category);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.search) qs.set("search", params.search);
+  if (params?.limit != null) qs.set("limit", String(params.limit));
+  if (params?.offset != null) qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  return apiFetch<ApiWorkpaperList>(
+    `/engagements/${engagementId}/workpapers${query ? `?${query}` : ""}`
+  );
+}
+
+export function createWorkpaper(
+  engagementId: string,
+  data: {
+    reference_code: string;
+    title: string;
+    category?: string;
+    description?: string;
+    status?: string;
+    project_id?: string;
+  }
+) {
+  return apiFetch<ApiWorkpaper>(`/engagements/${engagementId}/workpapers`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function uploadWorkpaperFile(
+  engagementId: string,
+  workpaperId: string,
+  formData: FormData,
+  newVersion = false
+) {
+  if (newVersion) {
+    formData.append("new_version", "true");
+  }
+  return apiUpload<ApiWorkpaper>(
+    `/engagements/${engagementId}/workpapers/${workpaperId}/upload`,
+    formData
   );
 }
 

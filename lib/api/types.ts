@@ -336,6 +336,82 @@ export interface ApiEngagementTeamSummary {
   by_role: Record<string, ApiEngagementTeamMember[]>;
 }
 
+export interface ApiEvidence {
+  id: string;
+  engagement_id: string;
+  project_id: string | null;
+  analysis_run_id: string | null;
+  root_evidence_id: string | null;
+  version_number: number;
+  is_current: boolean;
+  title: string;
+  description: string | null;
+  category: string;
+  file_name: string;
+  content_type: string | null;
+  file_size_bytes: number;
+  file_hash: string | null;
+  status: string;
+  metadata: Record<string, unknown>;
+  uploaded_by: string | null;
+  uploaded_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiEvidenceList {
+  items: ApiEvidence[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ApiEvidenceLink {
+  id: string;
+  evidence_id: string;
+  engagement_id: string;
+  finding_id: string | null;
+  workpaper_id: string | null;
+  linked_entity_type: string;
+  linked_entity_id: string;
+  link_type: string;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface ApiWorkpaper {
+  id: string;
+  engagement_id: string;
+  project_id: string | null;
+  analysis_run_id: string | null;
+  root_workpaper_id: string | null;
+  version_number: number;
+  is_current: boolean;
+  reference_code: string;
+  title: string;
+  description: string | null;
+  category: string;
+  file_name: string | null;
+  content_type: string | null;
+  file_size_bytes: number | null;
+  file_hash: string | null;
+  has_file: boolean;
+  status: string;
+  metadata: Record<string, unknown>;
+  created_by: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiWorkpaperList {
+  items: ApiWorkpaper[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface ApiMessageResponse {
   message: string;
 }
