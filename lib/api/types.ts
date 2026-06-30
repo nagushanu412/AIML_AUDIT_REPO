@@ -412,6 +412,33 @@ export interface ApiWorkpaperList {
   offset: number;
 }
 
+export interface ApiFindingLifecycle {
+  id: string;
+  project_id: string;
+  rule_code: string;
+  finding_title: string;
+  observation: string;
+  risk_level: string;
+  impact: string;
+  recommendation: string;
+  affected_count: number;
+  status: string;
+  management_response: string | null;
+  remediation_status: string;
+  remediation_notes: string | null;
+  remediation_due_date: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiFindingList {
+  items: ApiFindingLifecycle[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface ApiMessageResponse {
   message: string;
 }

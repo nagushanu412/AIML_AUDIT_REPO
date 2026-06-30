@@ -14,6 +14,8 @@ import type {
   ApiEvidence,
   ApiEvidenceLink,
   ApiEvidenceList,
+  ApiFindingLifecycle,
+  ApiFindingList,
   ApiWorkpaper,
   ApiWorkpaperList,
   ApiMessageResponse,
@@ -553,6 +555,47 @@ export function uploadWorkpaperFile(
     `/engagements/${engagementId}/workpapers/${workpaperId}/upload`,
     formData
   );
+}
+
+export function fetchEngagementFindings(
+  engagementId: string,
+  params?: { status?: string; risk_level?: string; project_id?: string; limit?: number; offset?: number }
+) {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set("status", params.status);
+  if (params?.risk_level) qs.set("risk_level", params.risk_level);
+  if (params?.project_id) qs.set("project_id", params.project_id);
+  if (params?.limit != null) qs.set("limit", String(params.limit));
+  if (params?.offset != null) qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  return apiFetch<ApiFindingList>(
+    `/engagements/${engagementId}/findings${query ? `?${query}` : ""}`
+  );
+}
+
+export function updateFindingStatus(
+  findingId: string,
+  data: { status: string; change_reason?: string }
+) {
+  return apiFetch<ApiFindingLifecycle>(`/findings/${findingId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateFindingRemediation(
+  findingId: string,
+  data: {
+    remediation_status?: string;
+    remediation_notes?: string;
+    remediation_due_date?: string;
+    change_reason?: string;
+  }
+) {
+  return apiFetch<ApiFindingLifecycle>(`/findings/${findingId}/remediation`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 }
 
 export function updateClient(

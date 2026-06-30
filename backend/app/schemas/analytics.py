@@ -36,6 +36,9 @@ class FindingOut(BaseModel):
     impact: str
     recommendation: str
     affected_count: int
+    status: str = "open"
+    management_response: str | None = None
+    remediation_status: str = "not_started"
     created_at: datetime
 
 

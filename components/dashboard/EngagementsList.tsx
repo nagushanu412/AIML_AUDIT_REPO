@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import type { ApiEngagement } from "@/lib/api/types";
 import { EngagementModulesPanel } from "@/components/dashboard/EngagementModulesPanel";
+import { EngagementFindingsPanel } from "@/components/dashboard/EngagementFindingsPanel";
 import { EngagementRepositoryPanel } from "@/components/dashboard/EngagementRepositoryPanel";
 import { EngagementTeamPanel } from "@/components/dashboard/EngagementTeamPanel";
 
@@ -31,6 +32,7 @@ export function EngagementsList() {
   const [expandedModulesId, setExpandedModulesId] = useState<string | null>(null);
   const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
   const [expandedRepoId, setExpandedRepoId] = useState<string | null>(null);
+  const [expandedFindingsId, setExpandedFindingsId] = useState<string | null>(null);
   const [status, setStatus] = useState("active");
 
   const load = () => {
@@ -220,6 +222,15 @@ export function EngagementsList() {
                     <button
                       type="button"
                       onClick={() =>
+                        setExpandedFindingsId((id) => (id === eng.id ? null : eng.id))
+                      }
+                      className="rounded px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+                    >
+                      Findings
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
                         setExpandedRepoId((id) => (id === eng.id ? null : eng.id))
                       }
                       className="rounded px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
@@ -268,6 +279,13 @@ export function EngagementsList() {
                   </div>
                 </td>
               </tr>
+              {expandedFindingsId === eng.id && (
+                <tr>
+                  <td colSpan={6} className="p-0">
+                    <EngagementFindingsPanel engagementId={eng.id} />
+                  </td>
+                </tr>
+              )}
               {expandedRepoId === eng.id && (
                 <tr>
                   <td colSpan={6} className="p-0">

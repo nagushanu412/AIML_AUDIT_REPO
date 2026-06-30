@@ -881,9 +881,64 @@ class AuditFinding(Base):
     recommendation: Mapped[str] = mapped_column(Text, nullable=False)
     affected_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     journal_entry_ids: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="open")
+    management_response: Mapped[str | None] = mapped_column(Text, nullable=True)
+    remediation_status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="not_started"
+    )
+    remediation_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    remediation_due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
 
     project: Mapped["AuditProject"] = relationship(back_populates="audit_findings")
+    status_history: Mapped[list["FindingStatusHistory"]] = relationship(
+        back_populates="finding",
+        cascade="all, delete-orphan",
+    )
+
+
+class FindingStatusHistory(Base):
+    __tablename__ = "finding_status_history"
+    __table_args__ = (
+        CheckConstraint(
+            "action IN ("
+            "'status_change', 'management_response', 'remediation_update', 'reopened'"
+            ")",
+            name="ck_finding_status_history_action",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    finding_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_findings.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    previous_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    new_status: Mapped[str] = mapped_column(String(50), nullable=False)
+    action: Mapped[str] = mapped_column(String(50), nullable=False)
+    change_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    management_response_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)
+    changed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+    finding: Mapped["AuditFinding"] = relationship(back_populates="status_history")
+    changer: Mapped["User | None"] = relationship(foreign_keys=[changed_by])
 
 
 class Report(Base):
