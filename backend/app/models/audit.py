@@ -1053,6 +1053,109 @@ class Approval(Base):
     approver: Mapped["User | None"] = relationship(foreign_keys=[approver_id])
 
 
+class ModuleAnalysisRun(Base):
+    __tablename__ = "module_analysis_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ("
+            "'draft', 'running', 'completed', 'under_review', "
+            "'approved', 'locked', 'archived'"
+            ")",
+            name="ck_module_analysis_runs_status",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_projects.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    module_catalog_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_module_catalog.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    run_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft")
+    is_official: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    job_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    progress_pct: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    progress_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_retries: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    run_owner_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    started_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    submitted_for_review_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    locked_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    archived_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class ReportHistory(Base):
+    __tablename__ = "report_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_projects.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    analysis_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("module_analysis_runs.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    report_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("reports.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    report_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    is_official: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    storage_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    generated_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+
 class Report(Base):
     __tablename__ = "reports"
 

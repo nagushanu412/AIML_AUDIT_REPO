@@ -439,6 +439,54 @@ export interface ApiFindingList {
   offset: number;
 }
 
+export interface ApiAnalysisRun {
+  id: string;
+  engagement_id: string;
+  project_id: string | null;
+  module_catalog_id: string | null;
+  module_code: string | null;
+  run_name: string;
+  status: string;
+  is_official: boolean;
+  job_id: string | null;
+  progress_pct: number;
+  progress_message: string | null;
+  error_message: string | null;
+  retry_count: number;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface ApiAnalysisRunList {
+  items: ApiAnalysisRun[];
+  total: number;
+  suggested_names: string[];
+}
+
+export interface ApiEngagementHub {
+  engagement_id: string;
+  financial_year: string;
+  status: string;
+  enabled_modules: ApiEngagementModule[];
+  team_summary: ApiEngagementTeamSummary;
+  official_runs: ApiAnalysisRun[];
+  latest_runs: ApiAnalysisRun[];
+  findings_count: number;
+  pending_actions: string[];
+}
+
+export interface ApiEngagementReport {
+  id: string;
+  engagement_id: string;
+  report_type: string;
+  version_number: number;
+  is_official: boolean;
+  file_name: string;
+  created_at: string;
+  metadata: Record<string, unknown>;
+}
+
 export interface ApiMessageResponse {
   message: string;
 }

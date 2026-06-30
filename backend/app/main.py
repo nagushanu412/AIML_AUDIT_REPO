@@ -11,7 +11,8 @@ from app.routers.auth import router as auth_router
 from app.routers.clients import router as clients_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.engagement_team import router as engagement_team_router
-from app.routers.review_workflow import router as review_workflow_router
+from app.routers.analysis_runs import router as analysis_runs_router
+from app.routers.engagement_hub import router as engagement_hub_router
 from app.routers.workpapers import router as workpapers_router
 from app.routers.engagements import router as engagements_router
 from app.routers.health import router as health_router
@@ -88,6 +89,8 @@ app.include_router(module_catalog_router)
 app.include_router(clients_router)
 app.include_router(engagements_router)
 app.include_router(engagement_team_router)
+app.include_router(engagement_hub_router)
+app.include_router(analysis_runs_router)
 app.include_router(review_workflow_router)
 app.include_router(finding_lifecycle_router)
 app.include_router(evidence_router)

@@ -209,7 +209,12 @@ export function EngagementsList() {
               <Fragment key={eng.id}>
                 <tr className="hover:bg-slate-50/80">
                 <td className="px-4 py-3 font-medium text-slate-900">
-                  {clientNames[eng.client_id] ?? eng.client_id}
+                  <a
+                    href={`/dashboard/engagements/${eng.id}`}
+                    className="hover:text-brand-600 hover:underline"
+                  >
+                    {clientNames[eng.client_id] ?? eng.client_id}
+                  </a>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{eng.financial_year}</td>
                 <td className="px-4 py-3 text-slate-600">{eng.audit_type}</td>

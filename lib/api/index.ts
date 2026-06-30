@@ -14,6 +14,10 @@ import type {
   ApiEvidence,
   ApiEvidenceLink,
   ApiEvidenceList,
+  ApiAnalysisRun,
+  ApiAnalysisRunList,
+  ApiEngagementHub,
+  ApiEngagementReport,
   ApiFindingLifecycle,
   ApiFindingList,
   ApiWorkpaper,
@@ -596,6 +600,48 @@ export function updateFindingRemediation(
     method: "PATCH",
     body: JSON.stringify(data),
   });
+}
+
+export function fetchEngagementHub(engagementId: string) {
+  return apiFetch<ApiEngagementHub>(`/engagements/${engagementId}/hub`);
+}
+
+export function fetchAnalysisRuns(
+  engagementId: string,
+  params?: { module_code?: string; status?: string; limit?: number }
+) {
+  const qs = new URLSearchParams();
+  if (params?.module_code) qs.set("module_code", params.module_code);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.limit != null) qs.set("limit", String(params.limit));
+  const query = qs.toString();
+  return apiFetch<ApiAnalysisRunList>(
+    `/engagements/${engagementId}/runs${query ? `?${query}` : ""}`
+  );
+}
+
+export function createAnalysisRun(
+  engagementId: string,
+  data: { module_code: string; run_name?: string; project_id?: string }
+) {
+  return apiFetch<ApiAnalysisRun>(`/engagements/${engagementId}/runs`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function startAnalysisRun(engagementId: string, runId: string) {
+  return apiFetch<ApiAnalysisRun>(
+    `/engagements/${engagementId}/runs/${runId}/start`,
+    { method: "POST" }
+  );
+}
+
+export function generateEngagementReport(engagementId: string) {
+  return apiFetch<ApiEngagementReport>(
+    `/engagements/${engagementId}/reports/consolidated`,
+    { method: "POST" }
+  );
 }
 
 export function updateClient(
