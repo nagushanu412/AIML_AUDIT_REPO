@@ -13,6 +13,9 @@ from app.routers.dashboard import router as dashboard_router
 from app.routers.engagement_team import router as engagement_team_router
 from app.routers.analysis_runs import router as analysis_runs_router
 from app.routers.engagement_hub import router as engagement_hub_router
+from app.routers.evidence import router as evidence_router
+from app.routers.finding_lifecycle import router as finding_lifecycle_router
+from app.routers.review_workflow import router as review_workflow_router
 from app.routers.workpapers import router as workpapers_router
 from app.routers.engagements import router as engagements_router
 from app.routers.health import router as health_router
