@@ -10,6 +10,7 @@ from app.routers.analytics import router as analytics_router
 from app.routers.auth import router as auth_router
 from app.routers.clients import router as clients_router
 from app.routers.dashboard import router as dashboard_router
+from app.routers.engagement_team import router as engagement_team_router
 from app.routers.engagements import router as engagements_router
 from app.routers.health import router as health_router
 from app.routers.audit_logs import router as audit_logs_router
@@ -84,6 +85,7 @@ app.include_router(subscriptions_router)
 app.include_router(module_catalog_router)
 app.include_router(clients_router)
 app.include_router(engagements_router)
+app.include_router(engagement_team_router)
 app.include_router(engagement_modules_router)
 app.include_router(projects_router)
 app.include_router(upload_router)

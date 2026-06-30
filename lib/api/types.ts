@@ -280,6 +280,62 @@ export interface ApiEngagementModule {
   enabled_at: string;
 }
 
+export interface ApiEngagementTeamMember {
+  id: string;
+  engagement_id: string;
+  user_id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  status: string;
+  is_primary: boolean;
+  notes: string | null;
+  assigned_by: string | null;
+  assigned_by_name: string | null;
+  assigned_at: string;
+  removed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiEngagementTeamList {
+  items: ApiEngagementTeamMember[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ApiEngagementTeamHistory {
+  id: string;
+  engagement_id: string;
+  team_member_id: string | null;
+  user_id: string;
+  user_email: string;
+  user_full_name: string;
+  role: string;
+  action: string;
+  previous_role: string | null;
+  changed_by: string | null;
+  changed_by_name: string | null;
+  change_reason: string | null;
+  created_at: string;
+}
+
+export interface ApiEngagementTeamHistoryList {
+  items: ApiEngagementTeamHistory[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ApiEngagementTeamSummary {
+  engagement_id: string;
+  total_active: number;
+  partner: ApiEngagementTeamMember | null;
+  audit_manager: ApiEngagementTeamMember | null;
+  by_role: Record<string, ApiEngagementTeamMember[]>;
+}
+
 export interface ApiMessageResponse {
   message: string;
 }

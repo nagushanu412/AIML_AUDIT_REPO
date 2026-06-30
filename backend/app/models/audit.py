@@ -386,6 +386,117 @@ class AuditEngagement(Base):
         back_populates="engagement",
         cascade="all, delete-orphan",
     )
+    team_members: Mapped[list["EngagementTeamMember"]] = relationship(
+        back_populates="engagement",
+        cascade="all, delete-orphan",
+    )
+
+
+class EngagementTeamMember(Base):
+    __tablename__ = "engagement_team_members"
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('partner', 'audit_manager', 'senior_auditor', 'auditor', 'reviewer')",
+            name="ck_engagement_team_members_role",
+        ),
+        CheckConstraint(
+            "status IN ('active', 'removed')",
+            name="ck_engagement_team_members_status",
+        ),
+        UniqueConstraint(
+            "engagement_id",
+            "user_id",
+            name="uq_engagement_team_members_engagement_user",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    organization_member_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organization_members.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    role: Mapped[str] = mapped_column(String(50), nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    assigned_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    assigned_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    removed_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    engagement: Mapped["AuditEngagement"] = relationship(back_populates="team_members")
+    user: Mapped["User"] = relationship(foreign_keys=[user_id])
+    assigner: Mapped["User | None"] = relationship(foreign_keys=[assigned_by])
+    organization_member: Mapped["OrganizationMember | None"] = relationship(
+        foreign_keys=[organization_member_id]
+    )
+
+
+class EngagementTeamAssignmentHistory(Base):
+    __tablename__ = "engagement_team_assignment_history"
+    __table_args__ = (
+        CheckConstraint(
+            "action IN ('assigned', 'role_changed', 'removed', 'reactivated')",
+            name="ck_engagement_team_history_action",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    team_member_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("engagement_team_members.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    role: Mapped[str] = mapped_column(String(50), nullable=False)
+    action: Mapped[str] = mapped_column(String(50), nullable=False)
+    previous_role: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    changed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    change_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+    engagement: Mapped["AuditEngagement"] = relationship()
+    user: Mapped["User"] = relationship(foreign_keys=[user_id])
+    changer: Mapped["User | None"] = relationship(foreign_keys=[changed_by])
 
 
 class AuditProject(Base):

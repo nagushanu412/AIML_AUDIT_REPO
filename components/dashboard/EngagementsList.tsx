@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import type { ApiEngagement } from "@/lib/api/types";
 import { EngagementModulesPanel } from "@/components/dashboard/EngagementModulesPanel";
+import { EngagementTeamPanel } from "@/components/dashboard/EngagementTeamPanel";
 
 export function EngagementsList() {
   const [engagements, setEngagements] = useState<ApiEngagement[]>([]);
@@ -27,6 +28,7 @@ export function EngagementsList() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedModulesId, setExpandedModulesId] = useState<string | null>(null);
+  const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
   const [status, setStatus] = useState("active");
 
   const load = () => {
@@ -216,6 +218,15 @@ export function EngagementsList() {
                     <button
                       type="button"
                       onClick={() =>
+                        setExpandedTeamId((id) => (id === eng.id ? null : eng.id))
+                      }
+                      className="rounded px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+                    >
+                      Team
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
                         setExpandedModulesId((id) => (id === eng.id ? null : eng.id))
                       }
                       className="rounded px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
@@ -246,6 +257,13 @@ export function EngagementsList() {
                   </div>
                 </td>
               </tr>
+              {expandedTeamId === eng.id && (
+                <tr>
+                  <td colSpan={6} className="p-0">
+                    <EngagementTeamPanel engagementId={eng.id} />
+                  </td>
+                </tr>
+              )}
               {expandedModulesId === eng.id && (
                 <tr>
                   <td colSpan={6} className="p-0">

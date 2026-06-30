@@ -18,3 +18,11 @@ def test_subscription_limit_check_regression():
     service = SubscriptionService()
     assert service.check_limit("clients", 5, 10) is True
     assert service.check_limit("clients", 10, 10) is False
+
+
+def test_phase2_m1_engagement_team_module_imports():
+    from app.services.engagement_team_constants import ENGAGEMENT_TEAM_ROLES
+    from app.services.engagement_team_service import EngagementTeamService
+
+    assert len(ENGAGEMENT_TEAM_ROLES) == 5
+    assert hasattr(EngagementTeamService(), "assign_member")

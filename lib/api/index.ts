@@ -7,6 +7,10 @@ import type {
   ApiLoginResponse,
   ApiModuleCatalog,
   ApiEngagementModule,
+  ApiEngagementTeamHistoryList,
+  ApiEngagementTeamList,
+  ApiEngagementTeamMember,
+  ApiEngagementTeamSummary,
   ApiMessageResponse,
   ApiInvitePreview,
   ApiAcceptInviteResponse,
@@ -354,6 +358,92 @@ export function disableEngagementModule(engagementId: string, moduleCode: string
   return apiFetch<ApiEngagementModule>(
     `/engagements/${engagementId}/modules/${moduleCode}/disable`,
     { method: "POST" }
+  );
+}
+
+export function fetchEngagementTeam(
+  engagementId: string,
+  params?: {
+    role?: string;
+    status?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }
+) {
+  const qs = new URLSearchParams();
+  if (params?.role) qs.set("role", params.role);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.search) qs.set("search", params.search);
+  if (params?.limit != null) qs.set("limit", String(params.limit));
+  if (params?.offset != null) qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  return apiFetch<ApiEngagementTeamList>(
+    `/engagements/${engagementId}/team${query ? `?${query}` : ""}`
+  );
+}
+
+export function fetchEngagementTeamSummary(engagementId: string) {
+  return apiFetch<ApiEngagementTeamSummary>(`/engagements/${engagementId}/team/summary`);
+}
+
+export function assignEngagementTeamMember(
+  engagementId: string,
+  data: { user_id: string; role: string; notes?: string; change_reason?: string }
+) {
+  return apiFetch<ApiEngagementTeamMember>(`/engagements/${engagementId}/team`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateEngagementTeamMember(
+  engagementId: string,
+  memberId: string,
+  data: { role?: string; notes?: string; change_reason?: string }
+) {
+  return apiFetch<ApiEngagementTeamMember>(
+    `/engagements/${engagementId}/team/${memberId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+export function removeEngagementTeamMember(
+  engagementId: string,
+  memberId: string,
+  changeReason?: string
+) {
+  const qs = changeReason
+    ? `?change_reason=${encodeURIComponent(changeReason)}`
+    : "";
+  return apiFetch<ApiEngagementTeamMember>(
+    `/engagements/${engagementId}/team/${memberId}${qs}`,
+    { method: "DELETE" }
+  );
+}
+
+export function fetchEngagementTeamHistory(
+  engagementId: string,
+  params?: {
+    user_id?: string;
+    role?: string;
+    action?: string;
+    limit?: number;
+    offset?: number;
+  }
+) {
+  const qs = new URLSearchParams();
+  if (params?.user_id) qs.set("user_id", params.user_id);
+  if (params?.role) qs.set("role", params.role);
+  if (params?.action) qs.set("action", params.action);
+  if (params?.limit != null) qs.set("limit", String(params.limit));
+  if (params?.offset != null) qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  return apiFetch<ApiEngagementTeamHistoryList>(
+    `/engagements/${engagementId}/team/history${query ? `?${query}` : ""}`
   );
 }
 
