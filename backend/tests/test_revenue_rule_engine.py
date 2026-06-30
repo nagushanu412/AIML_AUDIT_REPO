@@ -55,8 +55,8 @@ def test_gst_mismatch_rule():
             "customer_name": "Beta",
             "customer_gstin": "29AABCB5678B1Z5",
             "taxable_amount": Decimal("100000"),
-            "gst_amount": Decimal("5000"),
-            "total_amount": Decimal("105000"),
+            "gst_amount": Decimal("7000"),
+            "total_amount": Decimal("107000"),
             "payment_status": "Paid",
         }
     ]

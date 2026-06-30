@@ -7,7 +7,10 @@ from app.database import get_db
 from app.deps import get_current_auditor
 from app.models.audit import User
 from app.schemas.auth import (
+    AcceptInviteRequest,
+    AcceptInviteResponse,
     ForgotPasswordRequest,
+    InvitePreviewResponse,
     LoginRequest,
     LogoutRequest,
     MessageResponse,
@@ -24,8 +27,11 @@ from app.services.auth_service import (
     revoke_refresh_token,
     verify_refresh_token,
 )
+from app.services.invite_service import accept_invite, preview_invite
+from app.services.member_service import MemberService
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+_member_service = MemberService()
 
 
 def _ensure_auditor_role(user: User) -> None:
@@ -60,6 +66,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     _ensure_auditor_role(user)
+    _member_service.activate_invited_memberships(db, user)
     return issue_tokens(db, user)
 
 
@@ -70,6 +77,7 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
     _ensure_auditor_role(user)
     revoke_refresh_token(db, body.refresh_token)
+    _member_service.activate_invited_memberships(db, user)
     return issue_tokens(db, user)
 
 
@@ -89,6 +97,48 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
             "Password reset via email is not yet configured — contact your administrator."
         )
     )
+
+
+@router.get("/invite/preview", response_model=InvitePreviewResponse)
+def invite_preview(token: str, db: Session = Depends(get_db)):
+    try:
+        preview = preview_invite(db, token)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return InvitePreviewResponse(
+        email=preview.email,
+        full_name=preview.full_name,
+        organization_name=preview.organization_name,
+        role=preview.role,
+        role_label=preview.role_label,
+        requires_password=preview.requires_password,
+    )
+
+
+@router.post("/invite/accept", response_model=AcceptInviteResponse)
+def invite_accept(body: AcceptInviteRequest, db: Session = Depends(get_db)):
+    try:
+        tokens, message = accept_invite(db, body.token, body.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if tokens:
+        return AcceptInviteResponse(
+            message=message,
+            requires_login=False,
+            access_token=tokens["access_token"],
+            refresh_token=tokens["refresh_token"],
+            token_type=tokens["token_type"],
+            expires_in=tokens["expires_in"],
+            user_id=tokens["user_id"],
+            email=tokens["email"],
+            full_name=tokens["full_name"],
+            role=tokens["role"],
+            organization_id=tokens.get("organization_id"),
+            member_role=tokens.get("member_role"),
+        )
+
+    return AcceptInviteResponse(message=message, requires_login=True)
 
 
 @router.get("/me", response_model=UserOut)

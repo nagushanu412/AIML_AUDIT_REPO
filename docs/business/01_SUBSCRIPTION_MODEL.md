@@ -47,10 +47,12 @@ organization_subscriptions (N) ──→ (1) subscription_plans
 
 | Feature | Status |
 |---------|--------|
-| `subscription_plans` table | ✗ |
+| `subscription_plans` table | ✓ (Milestone 2) |
+| `organization_subscriptions` table | ✓ (Milestone 2) |
+| Plan selection UI | ✓ Settings page |
+| Limit definitions on plans | ✓ |
+| Limit enforcement on APIs | ✗ (Milestone 8) |
 | Billing provider (Stripe) | ✗ |
-| Plan selection UI | ✗ (registration mentions trial) |
-| Limit enforcement | ✗ |
 | Frontend `SubscriptionTier` type | ✓ (`trial`, `professional`, `enterprise`) |
 | Login subscription check | ✗ (hardcoded `subscriptionValid: true`) |
 

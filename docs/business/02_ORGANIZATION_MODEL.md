@@ -54,14 +54,18 @@ See [../adr/ADR-001-Organizations.md](../adr/ADR-001-Organizations.md).
 
 ## Current Implementation
 
-| Aspect | Current |
-|--------|---------|
-| Organization table | ✗ |
-| `User.company_name` | Free text only |
-| `User.role` | Single role per user (not org-scoped) |
-| Client ownership | `clients.user_id` |
-| Multi-user same firm | ✗ Not supported |
-| Registration | Creates user only; no org |
+| Aspect | Current (after Milestone 3) |
+|--------|----------------------------|
+| Organization table | ✓ `organizations` (Alembic 007) |
+| User ↔ org link | ✓ `organization_members` + interim `users.default_organization_id` |
+| Organization API | ✓ `/organizations/*` CRUD |
+| Member API | ✓ `/organizations/*/members/*` invite, list, update, remove |
+| Settings UI | ✓ Create/edit firm + team member management on `/dashboard/settings` |
+| RBAC foundation | ✓ Org-scoped roles and permission matrix (enforcement expands in M4/M8) |
+| `User.company_name` | Still present; not synced to org automatically |
+| Client ownership | Still `clients.user_id` — Milestone 4 |
+| Multi-user same firm | ✓ Via organization members (one org per user in Phase 1) |
+| Registration | Creates user only; org created separately in Settings |
 
 ## Scale Targets
 

@@ -55,6 +55,20 @@ class Settings(BaseSettings):
     )
     demo_user_password: str = Field(default="AuditAI2026!", alias="DEMO_USER_PASSWORD")
     max_upload_mb: int = Field(default=10, alias="MAX_UPLOAD_MB")
+    frontend_url: str = Field(
+        default="http://localhost:3000",
+        alias="FRONTEND_URL",
+    )
+    smtp_host: str | None = Field(default=None, alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_user: str | None = Field(default=None, alias="SMTP_USER")
+    smtp_password: str | None = Field(default=None, alias="SMTP_PASSWORD")
+    smtp_from: str = Field(
+        default="AuditAI Platform <noreply@auditai.com>",
+        alias="SMTP_FROM",
+    )
+    smtp_use_tls: bool = Field(default=True, alias="SMTP_USE_TLS")
+    invite_token_expire_days: int = Field(default=7, alias="INVITE_TOKEN_EXPIRE_DAYS")
 
     @property
     def is_production(self) -> bool:
@@ -80,6 +94,10 @@ class Settings(BaseSettings):
     @property
     def uses_default_jwt_secret(self) -> bool:
         return self.jwt_secret_key == _DEFAULT_JWT_SECRET
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.smtp_host and self.smtp_from)
 
 
 @lru_cache

@@ -4,9 +4,12 @@ from app.models.audit import (
     AuditProject,
     Client,
     JournalEntry,
+    Organization,
+    OrganizationSubscription,
     RefreshToken,
     Report,
     RiskScore,
+    SubscriptionPlan,
     ProcurementInvoice,
     ProcurementRiskScore,
     ProcurementRuleResult,
@@ -20,6 +23,9 @@ from app.models.audit import (
 
 __all__ = [
     "User",
+    "Organization",
+    "SubscriptionPlan",
+    "OrganizationSubscription",
     "RefreshToken",
     "Client",
     "AuditEngagement",

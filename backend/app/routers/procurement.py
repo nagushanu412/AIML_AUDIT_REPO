@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.deps import get_current_auditor
-from app.models.audit import AuditFinding, AuditProject, User
+from app.deps import get_tenant_context
+from app.models.audit import AuditFinding, AuditProject
 from app.schemas.analytics import FindingOut
 from app.schemas.procurement import (
     ProcurementRiskScoreOut,
@@ -16,6 +16,7 @@ from app.schemas.procurement import (
     ProcurementUploadResponse,
 )
 from app.services.project_access import get_owned_project
+from app.services.tenant_context import TenantContext
 from app.services.procurement_findings_service import generate_procurement_findings
 from app.services.procurement_risk_scoring import (
     get_procurement_risk_scores,
@@ -42,9 +43,9 @@ async def upload_procurement_file(
     project_id: UUID = Query(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
 
     if not file.filename or not file.filename.lower().endswith(".xlsx"):
@@ -77,9 +78,9 @@ async def upload_procurement_file(
 def run_procurement_rules(
     project_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
     try:
         return ProcurementRunRulesResponse(**run_procurement_rules_for_project(db, project_id))
@@ -91,9 +92,9 @@ def run_procurement_rules(
 def run_procurement_risk(
     project_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
     try:
         return ProcurementRunRiskResponse(**run_procurement_risk_scoring(db, project_id))
@@ -109,9 +110,9 @@ def list_procurement_risk_scores(
     limit: int = Query(500, ge=1, le=5000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
     rows = get_procurement_risk_scores(
         db, project_id, risk_category=risk_category, limit=limit, offset=offset
@@ -131,9 +132,9 @@ def list_procurement_risk_scores(
 def create_procurement_findings(
     project_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
     return generate_procurement_findings(db, project_id)
 
@@ -142,9 +143,9 @@ def create_procurement_findings(
 def list_procurement_findings(
     project_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
     return (
         db.query(AuditFinding)

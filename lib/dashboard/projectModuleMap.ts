@@ -41,30 +41,26 @@ export interface ProjectModuleMapping {
   supporting: string[];
 }
 
-/** Maps engagement project types to AI Audit Modules (from the 20-module catalog). */
+/** Maps engagement project types to AI Audit Modules (from the 22-module catalog). */
 export const PROJECT_MODULE_MAP: Record<string, ProjectModuleMapping> = {
   journal_testing: {
     primary: ["#1 Journal Entry Testing"],
     supporting: [],
   },
   revenue_testing: {
-    primary: ["#20 Invoice Checking", "#13 Customer Balance Confirmation"],
+    primary: ["#2 Revenue Testing"],
     supporting: [
-      "#2 Ledger Scrutiny",
-      "#4 GST Mismatch Checking",
-      "#18 Supporting Document Matching",
+      "#15 Customer Balance Confirmation",
+      "#22 Invoice Checking",
+      "#13 GST Mismatch Checking",
     ],
   },
   procurement_testing: {
-    primary: [
-      "#5 Purchase Order Matching",
-      "#6 Vendor Invoice Validation",
-      "#7 Duplicate Payment Checking",
-    ],
+    primary: ["#3 Procurement Testing"],
     supporting: [
-      "#12 GST Input Tax Credit Validation",
-      "#18 Supporting Document Matching",
-      "#20 Invoice Checking",
+      "#7 Purchase Order Matching",
+      "#8 Vendor Invoice Validation",
+      "#5 Duplicate Payment Checking",
     ],
   },
 };

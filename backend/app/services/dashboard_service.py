@@ -12,17 +12,18 @@ from app.models.audit import (
     RiskScore,
     RuleResult,
 )
-from app.models.audit import User
+from app.services.project_access import client_list_filter
+from app.services.tenant_context import TenantContext
 
 LEGACY_CLIENT_NAMES = ("Default Client", "Migrated Client")
 
 
-def get_dashboard_summary(db: Session, user: User) -> dict:
+def get_dashboard_summary(db: Session, tenant: TenantContext) -> dict:
     client_ids = [
         c.id
         for c in db.query(Client)
         .filter(
-            Client.user_id == user.id,
+            client_list_filter(tenant),
             Client.name.notin_(LEGACY_CLIENT_NAMES),
         )
         .all()

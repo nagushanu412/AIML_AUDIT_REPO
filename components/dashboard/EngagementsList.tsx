@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { Fragment, FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Pencil, Trash2 } from "lucide-react";
@@ -12,6 +12,7 @@ import {
   updateEngagement,
 } from "@/lib/api";
 import type { ApiEngagement } from "@/lib/api/types";
+import { EngagementModulesPanel } from "@/components/dashboard/EngagementModulesPanel";
 
 export function EngagementsList() {
   const [engagements, setEngagements] = useState<ApiEngagement[]>([]);
@@ -25,6 +26,7 @@ export function EngagementsList() {
   const [largeValueThreshold, setLargeValueThreshold] = useState("100000");
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedModulesId, setExpandedModulesId] = useState<string | null>(null);
   const [status, setStatus] = useState("active");
 
   const load = () => {
@@ -198,7 +200,8 @@ export function EngagementsList() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {engagements.map((eng) => (
-              <tr key={eng.id} className="hover:bg-slate-50/80">
+              <Fragment key={eng.id}>
+                <tr className="hover:bg-slate-50/80">
                 <td className="px-4 py-3 font-medium text-slate-900">
                   {clientNames[eng.client_id] ?? eng.client_id}
                 </td>
@@ -210,6 +213,15 @@ export function EngagementsList() {
                 <td className="px-4 py-3 capitalize text-slate-600">{eng.status}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedModulesId((id) => (id === eng.id ? null : eng.id))
+                      }
+                      className="rounded px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+                    >
+                      Modules
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -234,6 +246,14 @@ export function EngagementsList() {
                   </div>
                 </td>
               </tr>
+              {expandedModulesId === eng.id && (
+                <tr>
+                  <td colSpan={6} className="p-0">
+                    <EngagementModulesPanel engagementId={eng.id} />
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
           </tbody>
         </table>

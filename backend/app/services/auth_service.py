@@ -11,9 +11,11 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models.audit import RefreshToken, User
+from app.services.tenant_context import TenantContextService
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 settings = get_settings()
+_tenant_service = TenantContextService()
 
 AUDITOR_PORTAL_ROLES = frozenset({"auditor", "partner", "manager", "admin"})
 
@@ -28,8 +30,15 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def _token_response(user: User, access_token: str, refresh_token: str) -> dict:
-    return {
+def _token_response(
+    user: User,
+    access_token: str,
+    refresh_token: str,
+    *,
+    organization_id: uuid.UUID | None = None,
+    member_role: str | None = None,
+) -> dict:
+    payload = {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
@@ -39,23 +48,49 @@ def _token_response(user: User, access_token: str, refresh_token: str) -> dict:
         "full_name": user.full_name,
         "role": user.role,
     }
+    if organization_id is not None:
+        payload["organization_id"] = organization_id
+    if member_role is not None:
+        payload["member_role"] = member_role
+    return payload
 
 
-def create_access_token(user_id: uuid.UUID) -> str:
+def create_access_token(
+    user_id: uuid.UUID,
+    *,
+    organization_id: uuid.UUID | None = None,
+    member_role: str | None = None,
+) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
-    payload = {"sub": str(user_id), "exp": expire, "type": "access"}
+    payload: dict[str, str | int] = {
+        "sub": str(user_id),
+        "exp": expire,
+        "type": "access",
+    }
+    if organization_id is not None:
+        payload["org_id"] = str(organization_id)
+    if member_role is not None:
+        payload["org_role"] = member_role
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
-def decode_access_token(token: str) -> uuid.UUID:
+def decode_access_token_payload(token: str) -> dict:
     try:
         payload = jwt.decode(
             token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
         )
         if payload.get("type") != "access":
             raise ValueError("Invalid token type")
+        return payload
+    except JWTError as exc:
+        raise ValueError("Invalid token") from exc
+
+
+def decode_access_token(token: str) -> uuid.UUID:
+    payload = decode_access_token_payload(token)
+    try:
         return uuid.UUID(payload["sub"])
-    except (JWTError, ValueError, KeyError) as exc:
+    except (ValueError, KeyError) as exc:
         raise ValueError("Invalid token") from exc
 
 
@@ -127,9 +162,20 @@ def revoke_all_refresh_tokens(db: Session, user_id: uuid.UUID) -> None:
 
 
 def issue_tokens(db: Session, user: User) -> dict:
-    access = create_access_token(user.id)
+    tenant = _tenant_service.resolve_for_user(db, user)
+    access = create_access_token(
+        user.id,
+        organization_id=tenant.organization_id,
+        member_role=tenant.member_role,
+    )
     refresh = create_refresh_token(db, user.id)
-    return _token_response(user, access, refresh)
+    return _token_response(
+        user,
+        access,
+        refresh,
+        organization_id=tenant.organization_id,
+        member_role=tenant.member_role,
+    )
 
 
 def authenticate_user(db: Session, email: str, password: str) -> User | None:

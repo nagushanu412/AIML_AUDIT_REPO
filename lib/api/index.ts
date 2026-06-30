@@ -5,7 +5,19 @@ import type {
   ApiDashboardSummary,
   ApiEngagement,
   ApiLoginResponse,
+  ApiModuleCatalog,
+  ApiEngagementModule,
   ApiMessageResponse,
+  ApiInvitePreview,
+  ApiAcceptInviteResponse,
+  ApiOrganization,
+  ApiOrganizationCreate,
+  ApiOrganizationMember,
+  ApiOrganizationUpdate,
+  ApiMemberInvite,
+  ApiMemberUpdate,
+  ApiSubscriptionPlan,
+  ApiSubscriptionSummary,
   ApiProject,
   ApiReport,
   ApiRiskScore,
@@ -72,6 +84,21 @@ export function forgotPasswordApi(email: string) {
     method: "POST",
     auth: false,
     body: JSON.stringify({ email }),
+  });
+}
+
+export function previewInviteApi(token: string) {
+  return apiFetch<ApiInvitePreview>(
+    `/auth/invite/preview?token=${encodeURIComponent(token)}`,
+    { auth: false }
+  );
+}
+
+export function acceptInviteApi(data: { token: string; password?: string }) {
+  return apiFetch<ApiAcceptInviteResponse>("/auth/invite/accept", {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify(data),
   });
 }
 
@@ -249,6 +276,85 @@ export function fetchDashboardSummary() {
 
 export function fetchMe() {
   return apiFetch<ApiUserProfile>("/auth/me");
+}
+
+export function fetchMyOrganization() {
+  return apiFetch<ApiOrganization>("/organizations/me");
+}
+
+export function createOrganization(data: ApiOrganizationCreate) {
+  return apiFetch<ApiOrganization>("/organizations", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateMyOrganization(data: ApiOrganizationUpdate) {
+  return apiFetch<ApiOrganization>("/organizations/me", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function fetchOrganizationMembers() {
+  return apiFetch<ApiOrganizationMember[]>("/organizations/me/members");
+}
+
+export function inviteOrganizationMember(data: ApiMemberInvite) {
+  return apiFetch<ApiOrganizationMember>("/organizations/me/members/invite", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateOrganizationMember(memberId: string, data: ApiMemberUpdate) {
+  return apiFetch<ApiOrganizationMember>(`/organizations/me/members/${memberId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function removeOrganizationMember(memberId: string) {
+  return apiFetch<ApiOrganizationMember>(`/organizations/me/members/${memberId}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchSubscriptionPlans() {
+  return apiFetch<ApiSubscriptionPlan[]>("/subscriptions/plans");
+}
+
+export function fetchMySubscription() {
+  return apiFetch<ApiSubscriptionSummary>("/subscriptions/me");
+}
+
+export function changeSubscriptionPlan(planCode: string) {
+  return apiFetch<ApiSubscriptionSummary>("/subscriptions/me", {
+    method: "PATCH",
+    body: JSON.stringify({ plan_code: planCode }),
+  });
+}
+
+export function fetchModuleCatalog() {
+  return apiFetch<ApiModuleCatalog[]>("/modules/catalog");
+}
+
+export function fetchEngagementModules(engagementId: string) {
+  return apiFetch<ApiEngagementModule[]>(`/engagements/${engagementId}/modules`);
+}
+
+export function enableEngagementModule(engagementId: string, moduleCode: string) {
+  return apiFetch<ApiEngagementModule>(
+    `/engagements/${engagementId}/modules/${moduleCode}/enable`,
+    { method: "POST" }
+  );
+}
+
+export function disableEngagementModule(engagementId: string, moduleCode: string) {
+  return apiFetch<ApiEngagementModule>(
+    `/engagements/${engagementId}/modules/${moduleCode}/disable`,
+    { method: "POST" }
+  );
 }
 
 export function updateClient(

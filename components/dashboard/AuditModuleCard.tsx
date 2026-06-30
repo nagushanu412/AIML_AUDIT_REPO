@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { moduleOpenHref } from "@/lib/dashboard/catalogUtils";
 import type { AuditModule } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils/cn";
 
@@ -60,7 +61,7 @@ export function AuditModuleCard({ module }: AuditModuleCardProps) {
 
       <div className="mt-5">
         {isActive ? (
-          <Link href={`/dashboard/ai-modules/${module.slug}`}>
+          <Link href={moduleOpenHref(module)}>
             <Button variant="primary" size="sm" fullWidth>
               Open Module
               <ArrowRight className="h-4 w-4" aria-hidden="true" />

@@ -134,6 +134,111 @@ export interface ApiUserProfile {
   is_active: boolean;
 }
 
+export interface ApiOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  settings: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiOrganizationCreate {
+  name: string;
+  slug?: string;
+  settings?: Record<string, unknown>;
+}
+
+export interface ApiOrganizationUpdate {
+  name?: string;
+  slug?: string;
+  status?: string;
+  settings?: Record<string, unknown>;
+}
+
+export interface ApiOrganizationMember {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  status: string;
+  invited_at: string | null;
+  joined_at: string;
+  created_at: string;
+  updated_at: string;
+  invite_email_sent?: boolean;
+  invite_link?: string | null;
+}
+
+export interface ApiMemberInvite {
+  email: string;
+  role?: string;
+  full_name?: string;
+}
+
+export interface ApiMemberUpdate {
+  role?: string;
+  status?: string;
+}
+
+export interface ApiSubscriptionPlan {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  max_users: number;
+  max_clients: number;
+  max_engagements: number;
+  max_storage_bytes: number;
+  monthly_ai_credits: number;
+  monthly_uploads: number;
+  max_reports: number;
+  enabled_module_codes: string[];
+  api_rate_limit: number;
+  support_level: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiUsageSnapshot {
+  users: number;
+  clients: number;
+  engagements: number;
+  reports: number;
+  uploads: number;
+  storage_bytes: number;
+  ai_credits: number;
+}
+
+export interface ApiUsageLimits {
+  max_users: number;
+  max_clients: number;
+  max_engagements: number;
+  max_reports: number;
+  monthly_uploads: number;
+  max_storage_bytes: number;
+  monthly_ai_credits: number;
+  api_rate_limit: number;
+}
+
+export interface ApiSubscriptionSummary {
+  subscription: {
+    id: string;
+    organization_id: string;
+    status: string;
+    started_at: string;
+    ends_at?: string | null;
+  };
+  plan: ApiSubscriptionPlan;
+  usage: ApiUsageSnapshot;
+  limits: ApiUsageLimits;
+}
+
 export interface ApiLoginResponse {
   access_token: string;
   refresh_token: string;
@@ -143,10 +248,64 @@ export interface ApiLoginResponse {
   email: string;
   full_name: string;
   role: string;
+  organization_id?: string | null;
+  member_role?: string | null;
+}
+
+export interface ApiModuleCatalog {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  category: string;
+  slug: string;
+  icon: string;
+  implementation_status: string;
+  display_order: number;
+  is_active: boolean;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiEngagementModule {
+  id: string;
+  engagement_id: string;
+  module_code: string;
+  module_name: string;
+  module_slug: string;
+  category: string;
+  implementation_status: string;
+  is_enabled: boolean;
+  enabled_at: string;
 }
 
 export interface ApiMessageResponse {
   message: string;
+}
+
+export interface ApiInvitePreview {
+  email: string;
+  full_name: string;
+  organization_name: string;
+  role: string;
+  role_label: string;
+  requires_password: boolean;
+}
+
+export interface ApiAcceptInviteResponse {
+  message: string;
+  requires_login: boolean;
+  access_token?: string | null;
+  refresh_token?: string | null;
+  token_type?: string | null;
+  expires_in?: number | null;
+  user_id?: string | null;
+  email?: string | null;
+  full_name?: string | null;
+  role?: string | null;
+  organization_id?: string | null;
+  member_role?: string | null;
 }
 
 export interface ApiRevenueUploadResponse {

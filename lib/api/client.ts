@@ -4,6 +4,7 @@ import {
   clearSession,
   getAccessToken,
   getRefreshToken,
+  updateSessionFromLoginResponse,
   updateSessionTokens,
 } from "@/lib/auth/session";
 import type { AuthSession } from "@/lib/auth/types";
@@ -46,6 +47,13 @@ async function refreshAccessToken(): Promise<boolean> {
     return false;
   }
 
+  updateSessionFromLoginResponse({
+    organization_id: api.organization_id,
+    member_role: api.member_role,
+    full_name: api.full_name,
+    email: api.email,
+    role: api.role,
+  });
   updateSessionTokens({
     accessToken: api.access_token,
     refreshToken: api.refresh_token,

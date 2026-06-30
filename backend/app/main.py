@@ -12,11 +12,17 @@ from app.routers.clients import router as clients_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.engagements import router as engagements_router
 from app.routers.health import router as health_router
+from app.routers.audit_logs import router as audit_logs_router
+from app.routers.engagement_modules import router as engagement_modules_router
+from app.routers.module_catalog import router as module_catalog_router
+from app.routers.organization_members import router as organization_members_router
+from app.routers.organizations import router as organizations_router
 from app.routers.projects import router as projects_router
 from app.routers.procurement import router as procurement_router
 from app.routers.revenue import router as revenue_router
 from app.routers.rules import router as rules_router
 from app.routers.rules_master import router as rules_master_router
+from app.routers.subscriptions import router as subscriptions_router
 from app.routers.upload import router as upload_router
 from app.services.seed_service import seed_demo_hierarchy
 
@@ -72,8 +78,13 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(auth_router)
+app.include_router(organizations_router)
+app.include_router(organization_members_router)
+app.include_router(subscriptions_router)
+app.include_router(module_catalog_router)
 app.include_router(clients_router)
 app.include_router(engagements_router)
+app.include_router(engagement_modules_router)
 app.include_router(projects_router)
 app.include_router(upload_router)
 app.include_router(revenue_router)
@@ -82,3 +93,4 @@ app.include_router(rules_router)
 app.include_router(rules_master_router)
 app.include_router(analytics_router)
 app.include_router(dashboard_router)
+app.include_router(audit_logs_router)

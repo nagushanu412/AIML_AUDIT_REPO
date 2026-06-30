@@ -63,6 +63,29 @@ export function updateSessionTokens(
   saveSession(session, inLocal);
 }
 
+export function updateSessionFromLoginResponse(api: {
+  organization_id?: string | null;
+  member_role?: string | null;
+  user_id?: string;
+  email?: string;
+  full_name?: string;
+  role?: string;
+}): void {
+  const session = getSession();
+  if (!session) return;
+  if (api.organization_id !== undefined) {
+    session.user.organizationId = api.organization_id ?? undefined;
+  }
+  if (api.member_role !== undefined) {
+    session.user.memberRole = api.member_role ?? undefined;
+  }
+  if (api.full_name) session.user.name = api.full_name;
+  if (api.email) session.user.email = api.email;
+  if (api.role) session.user.role = api.role as AuthSession["user"]["role"];
+  const inLocal = localStorage.getItem(AUTH_STORAGE_KEYS.session) !== null;
+  saveSession(session, inLocal);
+}
+
 export function getUserInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return "AU";

@@ -8,31 +8,32 @@ Document the current PostgreSQL schema, design principles, indexes, and the targ
 
 - Single schema (`public`) in PostgreSQL
 - SQLAlchemy ORM models in one file: `backend/app/models/audit.py`
-- Alembic for migrations (6 versions: 001–006)
+- Alembic for migrations (7 versions: 001–007)
 - JSONB for flexible rule config and finding entity references
 - Cascade deletes from engagement → project → transactional data
 
-## Current Tables (17)
+## Current Tables (18)
 
 | # | Table | Primary purpose |
 |---|-------|-----------------|
-| 1 | `users` | Identity, role string, profile |
-| 2 | `refresh_tokens` | JWT refresh rotation |
-| 3 | `clients` | Audited entities (`user_id` owner) |
-| 4 | `audit_engagements` | FY engagements per client |
-| 5 | `audit_projects` | Module instance via `project_type` |
-| 6 | `journal_entries` | JE upload population |
-| 7 | `rules_master` | Global rule definitions |
-| 8 | `rule_results` | Journal rule violations |
-| 9 | `risk_scores` | Journal entry scores |
-| 10 | `audit_findings` | Aggregated findings (all modules) |
-| 11 | `reports` | Export file metadata |
-| 12 | `revenue_invoices` | Revenue upload population |
-| 13 | `revenue_rule_results` | Revenue rule violations |
-| 14 | `revenue_risk_scores` | Revenue invoice scores |
-| 15 | `procurement_invoices` | Procurement upload population |
-| 16 | `procurement_rule_results` | Procurement rule violations |
-| 17 | `procurement_risk_scores` | Procurement invoice scores |
+| 1 | `users` | Identity, role string, profile, `default_organization_id` (interim) |
+| 2 | `organizations` | Audit firm tenant *(Phase 1 M1)* |
+| 3 | `refresh_tokens` | JWT refresh rotation |
+| 4 | `clients` | Audited entities (`user_id` owner) |
+| 5 | `audit_engagements` | FY engagements per client |
+| 6 | `audit_projects` | Module instance via `project_type` |
+| 7 | `journal_entries` | JE upload population |
+| 8 | `rules_master` | Global rule definitions |
+| 9 | `rule_results` | Journal rule violations |
+| 10 | `risk_scores` | Journal entry scores |
+| 11 | `audit_findings` | Aggregated findings (all modules) |
+| 12 | `reports` | Export file metadata |
+| 13 | `revenue_invoices` | Revenue upload population |
+| 14 | `revenue_rule_results` | Revenue rule violations |
+| 15 | `revenue_risk_scores` | Revenue invoice scores |
+| 16 | `procurement_invoices` | Procurement upload population |
+| 17 | `procurement_rule_results` | Procurement rule violations |
+| 18 | `procurement_risk_scores` | Procurement invoice scores |
 
 ## Migration History
 
@@ -44,6 +45,18 @@ Document the current PostgreSQL schema, design principles, indexes, and the targ
 | 004 | `004_rule_config_defaults.py` | rule config_schema backfill |
 | 005 | `005_revenue_testing.py` | revenue tables + REV_* rules |
 | 006 | `006_procurement_testing.py` | procurement tables + PROC_* rules |
+| 007 | `007_organizations.py` | organizations + users.default_organization_id |
+
+### `organizations` (Milestone 1)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID PK | |
+| `name` | varchar(255) | Firm legal/trading name |
+| `slug` | varchar(100) UK | URL-safe unique identifier |
+| `status` | varchar(50) | `active`, `suspended`, `closed` |
+| `settings` | JSONB | Timezone, branding, defaults |
+| `created_at`, `updated_at` | timestamptz | |
 
 ## Key Columns
 

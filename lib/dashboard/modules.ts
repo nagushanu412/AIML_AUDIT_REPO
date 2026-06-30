@@ -14,6 +14,7 @@ import {
   Receipt,
   Scale,
   ShieldCheck,
+  ShoppingCart,
   UserCheck,
   Users,
   Wallet,
@@ -32,11 +33,31 @@ export const AUDIT_MODULES: AuditModule[] = [
     category: "General Ledger",
   },
   {
+    id: "revenue-testing",
+    name: "Revenue Testing",
+    description:
+      "AI-assisted revenue substantive testing — sales register upload, cutoff analysis, GST checks, and exception reporting.",
+    status: "active",
+    slug: "revenue-testing",
+    icon: Receipt,
+    category: "Revenue",
+  },
+  {
+    id: "procurement-testing",
+    name: "Procurement Testing",
+    description:
+      "AI-assisted procurement controls testing — vendor invoice upload, PO matching, duplicate payment detection, and findings.",
+    status: "active",
+    slug: "procurement-testing",
+    icon: ShoppingCart,
+    category: "Procurement",
+  },
+  {
     id: "ledger-scrutiny",
     name: "Ledger Scrutiny",
     description:
       "Automated scrutiny of general ledger accounts with variance analysis, trend detection, and account-level risk scoring.",
-    status: "active",
+    status: "coming_soon",
     slug: "ledger-scrutiny",
     icon: FileSpreadsheet,
     category: "General Ledger",
@@ -46,7 +67,7 @@ export const AUDIT_MODULES: AuditModule[] = [
     name: "Duplicate Payment Checking",
     description:
       "Detect duplicate vendor payments, repeated invoice references, and overlapping disbursements across transactions.",
-    status: "active",
+    status: "coming_soon",
     slug: "duplicate-payment-checking",
     icon: Copy,
     category: "Accounts Payable",

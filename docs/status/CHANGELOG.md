@@ -8,7 +8,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added
+### Added — Phase 1 Milestone 3: Organization Members
+- Alembic migration `009_organization_members.py`: `organization_members` table
+- Eight org-scoped roles with RBAC permission matrix (`member_constants.py`, `require_org_permission` in deps)
+- Member repository, service, schemas, `/organizations/*/members/*` router
+- Invite by email (creates user if needed), change roles, remove/disable members
+- Owner membership on org create; backfill owners from existing `default_organization_id`
+- Frontend `OrganizationMembers` on Settings page
+- Invited memberships activated on login/refresh
+- User usage count uses active `organization_members`
+- Unit tests: `backend/tests/test_organization_members.py` (8 tests)
+
+### Added — Phase 1 Milestone 2: Subscription Plans
+- Alembic migration `008_subscription_plans.py`: `subscription_plans`, `organization_subscriptions`
+- Seed plans: Free, Starter, Professional, Enterprise with usage limits
+- Subscription repository, service, schemas, `/subscriptions/*` router
+- Auto-assign Free plan when organization is created; backfill existing orgs in migration
+- Frontend `SubscriptionSettings` on Settings page (usage vs limits, plan switch)
+- Unit tests: `backend/tests/test_subscriptions.py` (5 tests)
+
+### Added — Phase 1 Milestone 1: Organizations
+- Alembic migration `007_organizations.py`: `organizations` table + `users.default_organization_id`
+- `Organization` SQLAlchemy model with status check constraint and JSONB settings
+- Organization repository, service, Pydantic schemas, and `/organizations/*` router
+- Frontend `OrganizationSettings` component on Settings page
+- API client: `fetchMyOrganization`, `createOrganization`, `updateMyOrganization`
+- Unit tests: `backend/tests/test_organizations.py` (8 tests)
+
+### Added (documentation)
 - Complete enterprise SaaS documentation pack (31 markdown files)
   - Architecture docs (6): system, SaaS, multi-tenant, navigation, user flow, folder structure
   - Database docs (4): design, ER diagram, relationships, migration strategy
@@ -19,11 +46,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - Status docs (3): project status, changelog, next steps
 - Enterprise SaaS Architecture Review (`docs/ENTERPRISE_SAAS_ARCHITECTURE_REVIEW.md`)
 
-### Planned (Phase 1 — not yet implemented)
-- Multi-tenant organizations and subscription plans
-- Module catalog in PostgreSQL
-- Tenant isolation via `organization_id`
-- Audit logging
+### Planned (Phase 1 — remaining milestones)
+- Tenant isolation (Milestone 4)
+- Tenant isolation via `organization_id` (Milestone 4)
+- Module catalog in PostgreSQL (Milestone 5)
 
 ---
 

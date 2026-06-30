@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.deps import get_current_auditor
-from app.models.audit import AuditFinding, AuditProject, User
+from app.deps import get_tenant_context
+from app.models.audit import AuditFinding, AuditProject
 from app.schemas.analytics import FindingOut
 from app.schemas.revenue import (
     RevenueRiskScoreOut,
@@ -16,6 +16,7 @@ from app.schemas.revenue import (
     RevenueUploadResponse,
 )
 from app.services.project_access import get_owned_project
+from app.services.tenant_context import TenantContext
 from app.services.revenue_findings_service import generate_revenue_findings
 from app.services.revenue_risk_scoring import get_revenue_risk_scores, run_revenue_risk_scoring
 from app.services.revenue_rule_runner import run_revenue_rules_for_project
@@ -39,9 +40,9 @@ async def upload_revenue_file(
     project_id: UUID = Query(..., description="Revenue testing project UUID"),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_revenue_project(project)
 
     if not file.filename or not file.filename.lower().endswith(".xlsx"):
@@ -81,9 +82,9 @@ async def upload_revenue_file(
 def run_revenue_rules(
     project_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_revenue_project(project)
     try:
         result = run_revenue_rules_for_project(db, project_id)
@@ -96,9 +97,9 @@ def run_revenue_rules(
 def run_revenue_risk(
     project_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_revenue_project(project)
     try:
         result = run_revenue_risk_scoring(db, project_id)
@@ -115,9 +116,9 @@ def list_revenue_risk_scores(
     limit: int = Query(500, ge=1, le=5000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_revenue_project(project)
     rows = get_revenue_risk_scores(
         db, project_id, risk_category=risk_category, limit=limit, offset=offset
@@ -137,9 +138,9 @@ def list_revenue_risk_scores(
 def create_revenue_findings(
     project_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_revenue_project(project)
     return generate_revenue_findings(db, project_id)
 
@@ -148,9 +149,9 @@ def create_revenue_findings(
 def list_revenue_findings(
     project_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     _ensure_revenue_project(project)
     return (
         db.query(AuditFinding)

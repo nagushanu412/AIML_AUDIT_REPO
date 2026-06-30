@@ -8,13 +8,14 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import get_current_auditor
-from app.models.audit import AuditEngagement, AuditFinding, AuditProject, Client, Report, User
+from app.deps import get_tenant_context
+from app.models.audit import AuditEngagement, AuditFinding, AuditProject, Client, Report
 from app.schemas.analytics import FindingOut, ReportOut, RiskScoreOut, RunRiskResponse
 from app.services.findings_service import generate_findings
-from app.services.project_access import get_owned_project
+from app.services.project_access import client_list_filter, get_owned_project
 from app.services.report_service import generate_project_report
 from app.services.risk_scoring import get_risk_scores, run_risk_scoring
+from app.services.tenant_context import TenantContext
 
 router = APIRouter(tags=["Analytics"])
 
@@ -23,9 +24,9 @@ router = APIRouter(tags=["Analytics"])
 def run_risk(
     project_id: UUID = Query(..., description="Audit project UUID"),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    get_owned_project(db, project_id, current_user)
+    get_owned_project(db, project_id, tenant)
     try:
         return run_risk_scoring(db, project_id)
     except Exception as exc:
@@ -40,9 +41,9 @@ def list_risk_scores(
     limit: int = Query(500, ge=1, le=5000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    get_owned_project(db, project_id, current_user)
+    get_owned_project(db, project_id, tenant)
     rows = get_risk_scores(
         db, project_id, risk_category=risk_category, limit=limit, offset=offset
     )
@@ -53,9 +54,9 @@ def list_risk_scores(
 def create_findings(
     project_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    get_owned_project(db, project_id, current_user)
+    get_owned_project(db, project_id, tenant)
     findings = generate_findings(db, project_id)
     return findings
 
@@ -64,9 +65,9 @@ def create_findings(
 def list_findings(
     project_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    get_owned_project(db, project_id, current_user)
+    get_owned_project(db, project_id, tenant)
     return (
         db.query(AuditFinding)
         .filter(AuditFinding.project_id == project_id)
@@ -79,17 +80,17 @@ def list_findings(
 def list_reports(
     project_id: UUID | None = Query(None),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
     query = (
         db.query(Report)
         .join(AuditProject)
         .join(AuditEngagement)
         .join(Client)
-        .filter(Client.user_id == current_user.id)
+        .filter(client_list_filter(tenant))
     )
     if project_id:
-        get_owned_project(db, project_id, current_user)
+        get_owned_project(db, project_id, tenant)
         query = query.filter(Report.project_id == project_id)
     rows = query.order_by(Report.created_at.desc()).limit(100).all()
     return [
@@ -111,10 +112,10 @@ def create_report(
     project_id: UUID = Query(...),
     report_type: str = Query("journal_audit_summary"),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
-    report = generate_project_report(db, project, current_user.id, report_type)
+    project = get_owned_project(db, project_id, tenant)
+    report = generate_project_report(db, project, tenant.user.id, report_type)
     return ReportOut(
         id=report.id,
         project_id=report.project_id,
@@ -130,14 +131,14 @@ def create_report(
 def download_report(
     report_id: UUID,
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
     report = (
         db.query(Report)
         .join(AuditProject)
         .join(AuditEngagement)
         .join(Client)
-        .filter(Report.id == report_id, Client.user_id == current_user.id)
+        .filter(Report.id == report_id, client_list_filter(tenant))
         .first()
     )
     if not report:

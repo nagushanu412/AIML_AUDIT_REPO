@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Bell, LogOut, Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { fetchMyOrganization } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { getUserInitials } from "@/lib/auth/session";
 import { cn } from "@/lib/utils/cn";
@@ -17,6 +19,12 @@ const ROLE_LABELS: Record<string, string> = {
   partner: "Partner",
   manager: "Manager",
   admin: "Administrator",
+  organization_owner: "Organization Owner",
+  audit_manager: "Audit Manager",
+  senior_auditor: "Senior Auditor",
+  reviewer: "Reviewer",
+  read_only: "Read Only",
+  client_user: "Client User",
 };
 
 export function DashboardHeader({
@@ -27,6 +35,24 @@ export function DashboardHeader({
   const { session, logout } = useAuth();
   const user = session?.user;
   const initials = user ? getUserInitials(user.name) : "AU";
+  const [orgName, setOrgName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.organizationId) {
+      setOrgName(null);
+      return;
+    }
+    fetchMyOrganization()
+      .then((org) => setOrgName(org.name))
+      .catch(() => setOrgName(null));
+  }, [user?.organizationId]);
+
+  const roleLabel =
+    user?.memberRole != null
+      ? (ROLE_LABELS[user.memberRole] ?? user.memberRole)
+      : user
+        ? (ROLE_LABELS[user.role] ?? user.role)
+        : "Signed in";
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
@@ -46,7 +72,7 @@ export function DashboardHeader({
             </h1>
             {subtitle && (
               <p className="hidden truncate text-sm text-slate-500 sm:block">
-                {subtitle}
+                {orgName ? `${orgName} · ${subtitle}` : subtitle}
               </p>
             )}
           </div>
@@ -83,9 +109,7 @@ export function DashboardHeader({
             </div>
             <div className="hidden sm:block">
               <p className="text-xs font-semibold text-slate-900">{user?.name ?? "Auditor"}</p>
-              <p className="text-[11px] text-slate-500">
-                {user ? (ROLE_LABELS[user.role] ?? user.role) : "Signed in"}
-              </p>
+              <p className="text-[11px] text-slate-500">{roleLabel}</p>
             </div>
             <Button
               type="button"

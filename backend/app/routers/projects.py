@@ -5,10 +5,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import get_current_auditor
-from app.models.audit import AuditEngagement, AuditProject, Client, User
+from app.deps import get_tenant_context
+from app.models.audit import AuditProject
 from app.schemas.hierarchy import ProjectCreate, ProjectOut, ProjectUpdate
-from app.services.project_access import get_owned_engagement, get_owned_project
+from app.services.engagement_module_service import EngagementModuleService
+from app.services.project_access import get_owned_engagement, get_owned_project, project_list_query
+from app.services.tenant_context import TenantContext
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -17,16 +19,11 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 def list_projects(
     engagement_id: UUID | None = Query(None),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    query = (
-        db.query(AuditProject)
-        .join(AuditEngagement)
-        .join(Client)
-        .filter(Client.user_id == current_user.id)
-    )
+    query = project_list_query(db, tenant)
     if engagement_id:
-        get_owned_engagement(db, engagement_id, current_user)
+        get_owned_engagement(db, engagement_id, tenant)
         query = query.filter(AuditProject.engagement_id == engagement_id)
     return query.order_by(AuditProject.name).all()
 
@@ -35,11 +32,15 @@ def list_projects(
 def create_project(
     body: ProjectCreate,
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    get_owned_engagement(db, body.engagement_id, current_user)
+    get_owned_engagement(db, body.engagement_id, tenant)
     project = AuditProject(**body.model_dump())
     db.add(project)
+    db.flush()
+    EngagementModuleService().sync_from_project_type(
+        db, body.engagement_id, body.project_type, tenant.user.id
+    )
     db.commit()
     db.refresh(project)
     return project
@@ -49,9 +50,9 @@ def create_project(
 def get_project(
     project_id: UUID,
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    return get_owned_project(db, project_id, current_user)
+    return get_owned_project(db, project_id, tenant)
 
 
 @router.patch("/{project_id}", response_model=ProjectOut)
@@ -59,9 +60,9 @@ def update_project(
     project_id: UUID,
     body: ProjectUpdate,
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(project, key, value)
     db.commit()
@@ -73,8 +74,8 @@ def update_project(
 def delete_project(
     project_id: UUID,
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, current_user)
+    project = get_owned_project(db, project_id, tenant)
     db.delete(project)
     db.commit()

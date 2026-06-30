@@ -3,6 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     Date,
@@ -33,15 +34,266 @@ class User(Base):
     company_name: Mapped[str | None] = mapped_column(String(255))
     phone: Mapped[str | None] = mapped_column(String(50))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    default_organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
+    default_organization: Mapped["Organization | None"] = relationship(
+        foreign_keys=[default_organization_id]
+    )
+    organization_memberships: Mapped[list["OrganizationMember"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     clients: Mapped[list["Client"]] = relationship(back_populates="user")
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+
+
+class Organization(Base):
+    __tablename__ = "organizations"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'suspended', 'closed')",
+            name="ck_organizations_status",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
+    settings: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    subscriptions: Mapped[list["OrganizationSubscription"]] = relationship(
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
+    members: Mapped[list["OrganizationMember"]] = relationship(
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
+
+
+class OrganizationMember(Base):
+    __tablename__ = "organization_members"
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ("
+            "'organization_owner', 'partner', 'audit_manager', 'senior_auditor', "
+            "'auditor', 'reviewer', 'client_user', 'read_only'"
+            ")",
+            name="ck_organization_members_role",
+        ),
+        CheckConstraint(
+            "status IN ('active', 'invited', 'disabled')",
+            name="ck_organization_members_status",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "user_id",
+            name="uq_organization_members_org_user",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    role: Mapped[str] = mapped_column(String(50), nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
+    invited_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    joined_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    organization: Mapped["Organization"] = relationship(back_populates="members")
+    user: Mapped["User"] = relationship(back_populates="organization_memberships")
+
+
+class AuditModuleCatalog(Base):
+    __tablename__ = "audit_module_catalog"
+    __table_args__ = (
+        CheckConstraint(
+            "implementation_status IN ('built', 'beta', 'planned')",
+            name="ck_audit_module_catalog_status",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(100), nullable=False)
+    slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    icon: Mapped[str] = mapped_column(String(50), nullable=False, default="BookOpen")
+    implementation_status: Mapped[str] = mapped_column(String(50), nullable=False)
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class EngagementEnabledModule(Base):
+    __tablename__ = "engagement_enabled_modules"
+    __table_args__ = (
+        UniqueConstraint(
+            "engagement_id",
+            "module_catalog_id",
+            name="uq_engagement_enabled_modules",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    module_catalog_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_module_catalog.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    enabled_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    enabled_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    engagement: Mapped["AuditEngagement"] = relationship(back_populates="enabled_modules")
+    module: Mapped["AuditModuleCatalog"] = relationship()
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    action: Mapped[str] = mapped_column(String(100), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    entity_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), nullable=False, index=True
+    )
+
+
+class SubscriptionPlan(Base):
+    __tablename__ = "subscription_plans"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    max_users: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_clients: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_engagements: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_storage_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    monthly_ai_credits: Mapped[int] = mapped_column(Integer, nullable=False)
+    monthly_uploads: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_reports: Mapped[int] = mapped_column(Integer, nullable=False)
+    enabled_module_codes: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    api_rate_limit: Mapped[int] = mapped_column(Integer, nullable=False)
+    support_level: Mapped[str] = mapped_column(String(50), nullable=False, default="email")
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    subscriptions: Mapped[list["OrganizationSubscription"]] = relationship(
+        back_populates="plan"
+    )
+
+
+class OrganizationSubscription(Base):
+    __tablename__ = "organization_subscriptions"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('trialing', 'active', 'past_due', 'cancelled', 'expired')",
+            name="ck_organization_subscriptions_status",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    subscription_plan_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("subscription_plans.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
+    started_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    ends_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    organization: Mapped["Organization"] = relationship(back_populates="subscriptions")
+    plan: Mapped["SubscriptionPlan"] = relationship(back_populates="subscriptions")
 
 
 class RefreshToken(Base):
@@ -70,6 +322,12 @@ class Client(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     industry: Mapped[str | None] = mapped_column(String(100))
     gstin: Mapped[str | None] = mapped_column(String(50))
@@ -83,6 +341,9 @@ class Client(Base):
     )
 
     user: Mapped["User"] = relationship(back_populates="clients")
+    organization: Mapped["Organization | None"] = relationship(
+        foreign_keys=[organization_id]
+    )
     engagements: Mapped[list["AuditEngagement"]] = relationship(
         back_populates="client", cascade="all, delete-orphan"
     )
@@ -96,6 +357,12 @@ class AuditEngagement(Base):
     )
     client_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("clients.id", ondelete="CASCADE"), nullable=False
+    )
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
     )
     financial_year: Mapped[str] = mapped_column(String(20), nullable=False)
     audit_type: Mapped[str] = mapped_column(String(50), nullable=False, default="Statutory")
@@ -114,6 +381,10 @@ class AuditEngagement(Base):
     client: Mapped["Client"] = relationship(back_populates="engagements")
     projects: Mapped[list["AuditProject"]] = relationship(
         back_populates="engagement", cascade="all, delete-orphan"
+    )
+    enabled_modules: Mapped[list["EngagementEnabledModule"]] = relationship(
+        back_populates="engagement",
+        cascade="all, delete-orphan",
     )
 
 

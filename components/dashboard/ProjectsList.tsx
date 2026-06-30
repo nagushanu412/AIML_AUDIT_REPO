@@ -147,8 +147,8 @@ export function ProjectsList() {
           </li>
         </ul>
         <p className="mt-2 text-xs text-slate-500">
-          Each project type links to modules from the 20-module catalog. Journal Entry Testing
-          uses journal testing projects only.
+          Each project type links to modules from the 22-module catalog. Journal Entry Testing,
+          Revenue Testing, and Procurement Testing are catalog modules #1–#3.
         </p>
       </div>
 

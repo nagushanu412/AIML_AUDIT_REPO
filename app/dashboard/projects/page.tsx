@@ -11,7 +11,7 @@ export default function ProjectsPage() {
   return (
     <DashboardShell
       title="Audit Projects"
-      subtitle="Engagement workstreams mapped to AI Audit Modules from the 20-module catalog"
+      subtitle="Audit projects mapped to the 22-module AI Audit catalog"
     >
       <ProjectsList />
     </DashboardShell>

@@ -1,8 +1,8 @@
 # Project Status — AIML_AUDIT
 
 **Last updated:** June 7, 2026  
-**Branch:** `architecture`  
-**Latest commit:** `7f468d6`
+**Branch:** `architecture` (local — Milestones 1–3 uncommitted)  
+**Phase 1:** Milestone 3 (Organization Members) implemented locally
 
 ---
 
@@ -12,8 +12,8 @@
 |-----------|---------|
 | Backend API | 2.0.0 |
 | Frontend | Next.js 14 (App Router) |
-| Database migrations | 001–006 (Alembic) |
-| Documentation | Phase 0 complete |
+| Database migrations | 001–009 (Alembic) — **009 requires `alembic upgrade head`** |
+| Documentation | Phase 0 complete; Phase 1 M1–M3 in progress |
 
 ### Production URLs
 
@@ -64,19 +64,51 @@
 - 6 Architecture Decision Records
 - Enterprise SaaS Architecture Review
 
+### Phase 1 Milestone 1 — Organizations *(local)*
+- [x] `organizations` table (Alembic 007)
+- [x] `users.default_organization_id` interim link (kept alongside `organization_members`)
+- [x] Organization CRUD API (`/organizations/*`)
+- [x] Organization service, repository, validation
+- [x] Settings UI: create and edit audit firm profile
+- [ ] Registration auto-creates org — Milestone 9
+
+### Phase 1 Milestone 2 — Subscription Plans *(local)*
+- [x] `subscription_plans` table + seed (Free, Starter, Professional, Enterprise)
+- [x] `organization_subscriptions` table
+- [x] Usage limits on plans (users, clients, engagements, storage, uploads, reports, AI credits)
+- [x] Auto-assign Free plan on organization create
+- [x] Backfill Free plan for existing organizations (migration 008)
+- [x] Subscription API (`/subscriptions/*`)
+- [x] Settings UI: plan display, usage vs limits, manual plan switch
+- [ ] Subscription limit enforcement on APIs — Milestone 8
+
+### Phase 1 Milestone 3 — Organization Members *(local)*
+- [x] `organization_members` table (Alembic 009)
+- [x] Eight org roles with RBAC permission matrix foundation
+- [x] Invite users by email (existing or new account)
+- [x] Remove/disable members, change roles
+- [x] Owner membership on org create; backfill from `default_organization_id`
+- [x] Member API (`/organizations/*/members/*`)
+- [x] Settings UI: team member list, invite, role change, remove
+- [x] Invited members activated on login
+- [x] User count in subscription usage uses `organization_members`
+
 ---
 
 ## Pending Features
 
-### Phase 1 — SaaS Foundation
-- [ ] `organizations` and `organization_members` tables
-- [ ] `subscription_plans` and billing limits
-- [ ] `organization_id` tenant isolation
-- [ ] Module catalog in PostgreSQL (22 modules)
-- [ ] Per-engagement module enablement
-- [ ] Audit logging
-- [ ] Team user invitation
-- [ ] JWT `org_id` claim
+### Phase 1 — SaaS Foundation (remaining milestones)
+- [x] `organizations` table *(Milestone 1)*
+- [x] `subscription_plans` + `organization_subscriptions` *(Milestone 2)*
+- [x] `organization_members` table *(Milestone 3)*
+- [ ] `organization_id` tenant isolation *(Milestone 4)*
+- [ ] Module catalog in PostgreSQL (22 modules) *(Milestone 5)*
+- [ ] Per-engagement module enablement *(Milestone 6)*
+- [ ] Audit logging *(Milestone 7)*
+- [ ] Subscription enforcement *(Milestone 8)*
+- [ ] Data backfill / migration *(Milestone 9)*
+- [ ] End-to-end tenant tests *(Milestone 10)*
+- [ ] JWT `org_id` claim *(Milestone 4)*
 
 ### Phase 2 — Enterprise Workflow
 - [ ] Engagement team assignment
@@ -112,11 +144,14 @@
 
 ## Current Database
 
-**17 tables** in PostgreSQL:
+**20 tables** in PostgreSQL (after migration 008):
 
 | Table | Purpose |
 |-------|---------|
-| `users` | Auditor accounts |
+| `users` | Auditor accounts (+ `default_organization_id` interim link) |
+| `organizations` | Audit firm tenant entity *(Milestone 1)* |
+| `subscription_plans` | SaaS plan definitions *(Milestone 2)* |
+| `organization_subscriptions` | Org ↔ plan assignment *(Milestone 2)* |
 | `refresh_tokens` | JWT refresh rotation |
 | `clients` | Auditee companies |
 | `audit_engagements` | FY audit assignments |
@@ -134,18 +169,20 @@
 | `reports` | Generated report files |
 | `rules_master` | Configurable rule definitions |
 
-**Missing for SaaS:** organizations, subscriptions, module catalog, audit logs, evidence, workpapers.
+**Missing for SaaS:** tenant isolation on data tables, module catalog, audit logs, evidence, workpapers, usage_records.
 
 ---
 
 ## Current APIs
 
-**13 routers**, ~40 endpoints. See [02_EXISTING_APIS.md](../api/02_EXISTING_APIS.md).
+**15 routers**, ~49 endpoints. See [02_EXISTING_APIS.md](../api/02_EXISTING_APIS.md).
 
 | Router | Prefix |
 |--------|--------|
 | health | `/health` |
 | auth | `/auth` |
+| organizations | `/organizations` *(Milestone 1)* |
+| subscriptions | `/subscriptions` *(Milestone 2)* |
 | clients | `/clients` |
 | engagements | `/engagements` |
 | projects | `/projects` |
@@ -175,17 +212,18 @@ Remaining 17 modules marked `coming_soon` in `lib/dashboard/modules.ts`. Target 
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
-| **SaaS Readiness** | 24/100 | No multi-tenancy, subscriptions, or org model |
+| **SaaS Readiness** | 32/100 | Organizations + subscription plans; no tenant isolation yet |
 | **Enterprise Readiness** | 39/100 | Strong analytics; weak workflow, governance, AI |
 | **Module Coverage** | 14% | 3 of 22 modules built |
 | **Documentation** | 95/100 | Phase 0 complete; pending implementation |
 
 ### SaaS Blockers
-1. `Client.user_id == current_user.id` — user-scoped, not firm-scoped
-2. No `organizations` table
-3. No subscription enforcement
-4. Module catalog not in database
-5. No audit trail / compliance logging
+1. `Client.user_id == current_user.id` — user-scoped, not firm-scoped *(Milestone 4)*
+2. ~~No `organizations` table~~ — **resolved in Milestone 1 (local)**
+3. ~~No subscription enforcement~~ — plans defined *(Milestone 2)*; API enforcement in Milestone 8
+4. Module catalog not in database *(Milestone 5)*
+5. No audit trail / compliance logging *(Milestone 7)*
+6. No `organization_id` on clients/engagements — tenant isolation pending *(Milestone 4)*
 
 ### Enterprise Blockers
 1. No evidence or workpaper management
@@ -213,12 +251,7 @@ Remaining 17 modules marked `coming_soon` in `lib/dashboard/modules.ts`. Target 
 
 ## Next Recommended Task
 
-**Await stakeholder approval**, then begin **Phase 1: SaaS Foundation**:
-
-1. Create Alembic migration 007: `organizations`, `organization_members`, `subscription_plans`
-2. Add nullable `organization_id` to `clients` and `audit_engagements`
-3. Implement `TenantContext` and update `project_access.py`
-4. Backfill existing users → organizations
+**Next:** Begin **Milestone 4 — Tenant Isolation** (`organization_id` on all tenant-scoped tables, JWT claims, middleware).
 
 See [NEXT_STEPS.md](./NEXT_STEPS.md) for full task breakdown.
 

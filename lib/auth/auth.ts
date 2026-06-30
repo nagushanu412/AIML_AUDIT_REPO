@@ -1,7 +1,9 @@
 import {
+  acceptInviteApi,
   forgotPasswordApi,
   loginApi,
   logoutApi,
+  previewInviteApi,
   refreshTokenApi,
   registerApi,
 } from "@/lib/api";
@@ -15,6 +17,7 @@ import {
   hasAuditorAccess,
   isAccessTokenExpired,
   saveSession,
+  updateSessionFromLoginResponse,
   updateSessionTokens,
 } from "./session";
 import type {
@@ -63,6 +66,8 @@ function buildSession(
       role: api.role as AuthSession["user"]["role"],
       subscription: "professional",
       mfaEnabled: false,
+      organizationId: api.organization_id ?? undefined,
+      memberRole: api.member_role ?? undefined,
     },
     tokens: {
       accessToken: api.access_token,
@@ -165,6 +170,52 @@ export async function forgotPassword(email: string): Promise<string> {
   return res.message;
 }
 
+export async function previewInvite(token: string) {
+  return previewInviteApi(token);
+}
+
+export async function acceptInvite(
+  token: string,
+  password?: string
+): Promise<AuthResult & { requiresLogin?: boolean }> {
+  try {
+    const api = await acceptInviteApi({
+      token,
+      password: password || undefined,
+    });
+
+    if (api.requires_login || !api.access_token || !api.refresh_token) {
+      return {
+        success: true,
+        requiresLogin: true,
+      };
+    }
+
+    const session = buildSession(
+      {
+        access_token: api.access_token,
+        refresh_token: api.refresh_token,
+        token_type: api.token_type ?? "bearer",
+        expires_in: api.expires_in ?? 3600,
+        user_id: api.user_id!,
+        email: api.email!,
+        full_name: api.full_name!,
+        role: api.role!,
+        organization_id: api.organization_id ?? null,
+        member_role: api.member_role ?? null,
+      },
+      false
+    );
+    saveSession(session, false);
+    return { success: true, session };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Could not accept invitation.",
+    };
+  }
+}
+
 export async function refreshSession(): Promise<boolean> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
@@ -174,6 +225,13 @@ export async function refreshSession(): Promise<boolean> {
       clearSession();
       return false;
     }
+    updateSessionFromLoginResponse({
+      organization_id: api.organization_id,
+      member_role: api.member_role,
+      full_name: api.full_name,
+      email: api.email,
+      role: api.role,
+    });
     updateSessionTokens({
       accessToken: api.access_token,
       refreshToken: api.refresh_token,

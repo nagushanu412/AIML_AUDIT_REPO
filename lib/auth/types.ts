@@ -18,6 +18,8 @@ export interface AuthUser {
   mfaEnabled: boolean;
   /** Firm / organization identifier for multi-tenant SSO */
   organizationId?: string;
+  /** Org-scoped role from organization_members (e.g. audit_manager) */
+  memberRole?: string;
 }
 
 export interface LoginCredentials {
@@ -48,6 +50,8 @@ export interface AuthResult {
   subscriptionValid?: boolean;
   /** Hint when 2FA challenge is required */
   requiresMfa?: boolean;
+  /** Invitation accepted but user must sign in separately */
+  requiresLogin?: boolean;
 }
 
 export interface AuthValidationErrors {

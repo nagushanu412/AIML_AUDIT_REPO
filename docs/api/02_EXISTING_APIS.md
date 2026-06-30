@@ -24,6 +24,48 @@ Complete inventory of implemented FastAPI endpoints as of API version 2.0.0.
 | POST | `/auth/forgot-password` | Stub (no email flow) |
 | GET | `/auth/me` | Current user profile |
 
+## Organizations — `/organizations` *(Phase 1 Milestone 1)*
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/organizations` | Create audit firm organization; links `users.default_organization_id` |
+| GET | `/organizations/me` | Get current user's organization |
+| PATCH | `/organizations/me` | Update current user's organization |
+| GET | `/organizations/{organization_id}` | Get organization (must match user's default org) |
+| PATCH | `/organizations/{organization_id}` | Update organization (must match user's default org) |
+| DELETE | `/organizations/{organization_id}` | Close organization (status → `closed`) |
+
+All organization endpoints require Bearer authentication.
+
+## Organization Members — `/organizations/*/members` *(Phase 1 Milestone 3)*
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/organizations/me/members` | List members of current user's organization |
+| POST | `/organizations/me/members/invite` | Invite user by email (`email`, `role`, optional `full_name`) |
+| PATCH | `/organizations/me/members/{member_id}` | Update member role or status |
+| DELETE | `/organizations/me/members/{member_id}` | Remove (disable) member |
+| GET | `/organizations/{organization_id}/members` | List members (org-scoped) |
+| POST | `/organizations/{organization_id}/members/invite` | Invite member |
+| PATCH | `/organizations/{organization_id}/members/{member_id}` | Update member |
+| DELETE | `/organizations/{organization_id}/members/{member_id}` | Remove member |
+
+Roles: `organization_owner`, `partner`, `audit_manager`, `senior_auditor`, `auditor`, `reviewer`, `client_user`, `read_only`.
+
+Member statuses: `active`, `invited`, `disabled`.
+
+RBAC: owners and audit managers can invite/remove/update; partners and auditors can list members.
+
+## Subscriptions — `/subscriptions` *(Phase 1 Milestone 2)*
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/subscriptions/plans` | List active plans (Free, Starter, Professional, Enterprise) |
+| GET | `/subscriptions/me` | Current org subscription, plan limits, and usage snapshot |
+| PATCH | `/subscriptions/me` | Change plan manually (`{ "plan_code": "starter" }`) |
+
+All subscription endpoints require Bearer authentication and an organization linked to the user.
+
 ## Clients — `/clients`
 
 | Method | Path | Description |
@@ -122,10 +164,12 @@ Mapped in `lib/api/index.ts` — ~40 wrapper functions using `apiFetch` / `apiUp
 
 ## Current Gaps
 
-- No organization, subscription, or module catalog endpoints
+- No tenant isolation on clients/engagements — Milestone 4
+- No module catalog endpoints — Milestone 5
 - No evidence, workpaper, review, or audit log APIs
 - Revenue/procurement use separate report generation via shared `/reports/generate` with type param
 - No webhook or billing endpoints
+- Subscription limit enforcement on write APIs — Milestone 8
 
 ## Recommendations
 

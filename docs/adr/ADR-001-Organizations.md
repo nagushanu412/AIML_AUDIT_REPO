@@ -2,7 +2,8 @@
 
 ## Status
 
-**Accepted** — June 2026
+**Accepted** — June 2026  
+**Implemented (Milestone 1):** June 2026 — `organizations` table, CRUD API, interim `users.default_organization_id` link
 
 ## Context
 

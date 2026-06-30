@@ -28,6 +28,35 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class AcceptInviteRequest(BaseModel):
+    token: str = Field(min_length=10)
+    password: str | None = Field(default=None, min_length=8, max_length=128)
+
+
+class InvitePreviewResponse(BaseModel):
+    email: str
+    full_name: str
+    organization_name: str
+    role: str
+    role_label: str
+    requires_password: bool
+
+
+class AcceptInviteResponse(BaseModel):
+    message: str
+    requires_login: bool = False
+    access_token: str | None = None
+    refresh_token: str | None = None
+    token_type: str | None = None
+    expires_in: int | None = None
+    user_id: UUID | None = None
+    email: str | None = None
+    full_name: str | None = None
+    role: str | None = None
+    organization_id: UUID | None = None
+    member_role: str | None = None
+
+
 class MessageResponse(BaseModel):
     message: str
 
@@ -41,6 +70,8 @@ class TokenResponse(BaseModel):
     email: str
     full_name: str
     role: str
+    organization_id: UUID | None = None
+    member_role: str | None = None
 
 
 class UserOut(BaseModel):

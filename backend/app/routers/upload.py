@@ -8,11 +8,11 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.deps import get_current_auditor
-from app.models.audit import User
+from app.deps import get_tenant_context
 from app.schemas.upload import UploadResponse
 from app.services.excel_validator import validate_excel
 from app.services.project_access import get_owned_project
+from app.services.tenant_context import TenantContext
 from app.services.upload_service import save_journal_entries
 
 router = APIRouter(tags=["Upload"])
@@ -23,7 +23,7 @@ async def upload_journal_entries(
     file: UploadFile = File(...),
     project_id: str = Query(..., description="Audit project UUID (required)"),
     db: Session = Depends(get_db),
-    current_user: Annotated[User, Depends(get_current_auditor)] = None,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
     if not file.filename or not file.filename.lower().endswith(".xlsx"):
         raise HTTPException(
@@ -36,7 +36,7 @@ async def upload_journal_entries(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid project_id UUID.") from exc
 
-    project = get_owned_project(db, parsed_project_id, current_user)
+    project = get_owned_project(db, parsed_project_id, tenant)
 
     settings = get_settings()
     content = await file.read()
