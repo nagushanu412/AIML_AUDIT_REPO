@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added — Phase 3 Milestone 1: Generic Module Framework
+- Generic Module Framework (`backend/app/services/module_framework/`)
+  - `ModuleProvider` protocol, `ModuleRegistry`, 3 built-in plugins
+  - Generic engines: Upload, Validation, Rule, Risk, Findings, Report, Analysis
+  - `AnalysisEngine` orchestration replacing analysis run background stub
+  - `LLMProvider` abstraction with `NoOpLLMProvider` (AI deferred to M4)
+- Generic REST API `/modules/{code}/*` per ADR-005 (no `/api/v2/` prefix)
+- Alembic migration `022`: `module_plugin_config`, `feature_flags`, catalog extensions
+- `AuditModuleWorkspace` shell component (`components/modules/`)
+- Tests: `test_phase3_m1_framework.py`, `test_phase3_m1_api.py` (124 total tests passing)
+- Documentation: `PHASE3_IMPLEMENTATION_GUIDE.md`, `PHASE3_M1_COMPLETION_REPORT.md`
+
 ### Added — Wave 0 Milestone 2: Phase 2 Enterprise Workflow
 - Analysis run lifecycle API: submit-review, approve, return, designate-official, archive
 - Locked/archived run mutation guards (`run_lock_guard.py`) on evidence, workpapers, findings

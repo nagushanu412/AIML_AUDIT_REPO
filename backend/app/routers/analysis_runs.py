@@ -14,11 +14,13 @@ from app.models.audit import AuditModuleCatalog, ModuleAnalysisRun
 from app.routers.errors import handle_service_error
 from app.services.analysis_run_service import AnalysisRunService, SUGGESTED_RUN_NAMES
 from app.services.audit_log_service import AuditLogService
+from app.services.module_framework.engines import AnalysisEngine
 from app.services.tenant_context import TenantContext
 
 router = APIRouter(prefix="/engagements", tags=["Analysis Runs"])
 _runs = AnalysisRunService()
 _audit_logs = AuditLogService()
+_analysis_engine = AnalysisEngine()
 
 
 class AnalysisRunCreate(BaseModel):
@@ -59,24 +61,14 @@ def _handle_error(exc: Exception) -> HTTPException:
 def _process_run_background(run_id: UUID) -> None:
     db = SessionLocal()
     try:
-        run = db.query(ModuleAnalysisRun).filter(ModuleAnalysisRun.id == run_id).first()
-        if not run:
-            return
-        run.progress_pct = 50
-        run.progress_message = "Running rules and risk scoring"
-        db.commit()
-
-        run.progress_pct = 100
-        run.status = "completed"
-        run.progress_message = "Analysis completed"
-        run.completed_at = datetime.utcnow()
-        db.commit()
+        _analysis_engine.execute_run(db, run_id)
     except Exception as exc:
         db.rollback()
         run = db.query(ModuleAnalysisRun).filter(ModuleAnalysisRun.id == run_id).first()
-        if run:
+        if run and run.status == "running":
             run.status = "draft"
             run.error_message = str(exc)
+            run.progress_message = "Analysis failed"
             db.commit()
     finally:
         db.close()

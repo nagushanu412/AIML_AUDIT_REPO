@@ -21,6 +21,7 @@ from app.routers.engagements import router as engagements_router
 from app.routers.health import router as health_router
 from app.routers.audit_logs import router as audit_logs_router
 from app.routers.engagement_modules import router as engagement_modules_router
+from app.routers.generic_modules import router as generic_modules_router
 from app.routers.module_catalog import router as module_catalog_router
 from app.routers.organization_members import router as organization_members_router
 from app.routers.organizations import router as organizations_router
@@ -89,6 +90,7 @@ app.include_router(organizations_router)
 app.include_router(organization_members_router)
 app.include_router(subscriptions_router)
 app.include_router(module_catalog_router)
+app.include_router(generic_modules_router)
 app.include_router(clients_router)
 app.include_router(engagements_router)
 app.include_router(engagement_team_router)

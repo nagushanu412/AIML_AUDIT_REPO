@@ -158,7 +158,70 @@ class AuditModuleCatalog(Base):
     implementation_status: Mapped[str] = mapped_column(String(50), nullable=False)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    project_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    rule_prefix: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    input_format: Mapped[str | None] = mapped_column(String(20), nullable=True, default="xlsx")
+    theme_color: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    ui_config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    plugin_config: Mapped["ModulePluginConfig | None"] = relationship(
+        back_populates="module",
+        uselist=False,
+    )
+
+
+class ModulePluginConfig(Base):
+    __tablename__ = "module_plugin_config"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    module_code: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("audit_module_catalog.code", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+    version: Mapped[str] = mapped_column(String(20), nullable=False, default="1.0.0")
+    config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    module: Mapped["AuditModuleCatalog"] = relationship(back_populates="plugin_config")
+
+
+class FeatureFlag(Base):
+    __tablename__ = "feature_flags"
+    __table_args__ = (
+        UniqueConstraint(
+            "flag_key",
+            "organization_id",
+            "module_code",
+            name="uq_feature_flags_scope",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    flag_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    module_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now(), nullable=False
@@ -1152,6 +1215,8 @@ class ModuleAnalysisRun(Base):
     progress_pct: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     progress_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pipeline_step: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    error_detail: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_retries: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     run_owner_id: Mapped[uuid.UUID | None] = mapped_column(

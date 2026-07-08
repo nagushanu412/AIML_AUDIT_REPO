@@ -1,8 +1,9 @@
 # Project Status — AIML_AUDIT
 
 **Last updated:** July 8, 2026  
-**Branch:** `architecture`  
-**Wave 0:** Complete (Milestones 1–6)
+**Branch:** `feature/phase3-m1-generic-framework`  
+**Wave 0:** Complete (Milestones 1–6)  
+**Phase 3 M1:** Complete (Generic Module Framework)
 
 ---
 
@@ -11,9 +12,10 @@
 | Phase | Completion |
 |-------|------------|
 | Phase 1 — SaaS Foundation | **~92%** |
-| Phase 2 — Enterprise Workflow | **~75%** |
-| Overall Project | **~82%** |
-| Phase 3 Readiness | **~40%** |
+| Phase 2 — Enterprise Workflow | **~80%** |
+| Phase 3 — M1 Generic Framework | **100%** |
+| Overall Project | **~85%** |
+| Phase 3 Remaining (M2–M10) | **Pending approval** |
 
 See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 review.
 
@@ -25,8 +27,8 @@ See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 r
 |-----------|---------|
 | Backend API | 2.0.0 |
 | Frontend | Next.js 14 (App Router) |
-| Database migrations | **001–021** (Alembic) — run `alembic upgrade head` |
-| Documentation | Wave 0 synchronized |
+| Database migrations | **001–022** (Alembic) — run `alembic upgrade head` |
+| Documentation | Phase 3 M1 synchronized |
 
 ### Production URLs
 
@@ -58,9 +60,20 @@ See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 r
 - [x] Consolidated report generation fix
 
 ### Testing (M4)
-- [x] **107** backend tests passing
+- [x] **124** backend tests passing
 - [x] HTTP integration tests (health, auth, protected routes)
 - [x] `npm run build` succeeds
+
+### Phase 3 Milestone 1 (Generic Module Framework)
+- [x] `ModuleProvider` protocol + 3 built-in plugins
+- [x] `ModuleRegistry` with runtime resolution
+- [x] Generic engines: Upload, Validation, Rule, Risk, Findings, Report, Analysis
+- [x] Generic REST API `/modules/{code}/*` (ADR-005)
+- [x] `AnalysisEngine` replaces background stub
+- [x] `LLMProvider` interface (no-op implementation)
+- [x] `module_plugin_config` + `feature_flags` tables (migration 022)
+- [x] `AuditModuleWorkspace` shell component (not wired to existing routes)
+- [x] Legacy APIs and UIs unchanged
 
 ---
 
@@ -102,14 +115,16 @@ See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 r
 - [ ] Subscription limit enforcement on all write APIs
 - [ ] Full multi-tenant HTTP isolation test matrix
 
-### Phase 2 Remaining (~25%)
-- [ ] Production async job pipeline (currently BackgroundTasks stub)
+### Phase 2 Remaining (~20%)
+- [ ] Production async job pipeline (Redis worker queue)
 - [ ] Review/official run UI in per-module workspaces
-- [ ] Shared `AuditModuleWorkspace` (3× duplication remains)
+- [ ] Legacy route shims → generic API (M2)
 - [ ] S3/blob storage for evidence and reports
 
-### Phase 3 — Out of Wave 0 Scope
-- Generic plugin architecture, AI engine, MFA/SSO, Redis, Celery, Stripe automation, modules 4–22
+### Phase 3 — M2+ (Pending Approval)
+- Migrate Journal, Revenue, Procurement to `AuditModuleWorkspace`
+- AI engine (M4), Billing (M5), Dashboards (M6), Scalability (M10)
+- Modules 4–22 via plugin registration
 
 ---
 
@@ -117,10 +132,10 @@ See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 r
 
 | Item | Severity |
 |------|----------|
-| 3 duplicated frontend workspaces | High |
-| BackgroundTasks analysis stub | Medium |
+| 3 duplicated frontend workspaces | High (M2) |
+| BackgroundTasks for analysis runs | Medium |
 | Local filesystem storage | Medium |
-| Partial API documentation drift | Low |
+| Dual API paths (legacy + generic) | Low (transitional) |
 
 ---
 
@@ -128,9 +143,9 @@ See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 r
 
 | Check | Status |
 |-------|--------|
-| `pytest` | 107 passed |
+| `pytest` | 124 passed |
 | `npm run build` | Success |
-| Migration 021 | Added (`finding_relationships`) |
+| Migration 022 | Phase 3 M1 framework |
 
 ---
 
@@ -138,6 +153,8 @@ See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 r
 
 | Document | Purpose |
 |----------|---------|
+| [PHASE3_M1_COMPLETION_REPORT.md](./PHASE3_M1_COMPLETION_REPORT.md) | Phase 3 M1 deliverables |
+| [PHASE3_IMPLEMENTATION_GUIDE.md](../roadmap/PHASE3_IMPLEMENTATION_GUIDE.md) | Phase 3 implementation guide |
 | [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) | Final Wave 0 review |
 | [PHASE3_READINESS_REPORT.md](./PHASE3_READINESS_REPORT.md) | Pre-Phase 3 baseline |
 | [PHASE2_IMPLEMENTATION_GUIDE.md](../roadmap/PHASE2_IMPLEMENTATION_GUIDE.md) | Enterprise criteria |
