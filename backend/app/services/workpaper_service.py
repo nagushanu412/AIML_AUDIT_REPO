@@ -14,6 +14,7 @@ from app.services.file_storage_service import (
     save_workpaper_file,
 )
 from app.services.project_access import get_owned_engagement, get_owned_project
+from app.services.run_lock_guard import assert_project_allows_mutation, assert_run_allows_mutation
 from app.services.tenant_context import TenantContext
 from app.services.workpaper_constants import (
     WORKPAPER_CATEGORIES,
@@ -102,6 +103,7 @@ class WorkpaperService:
             project = get_owned_project(db, project_id, tenant)
             if project.engagement_id != engagement.id:
                 raise ValueError("Project does not belong to this engagement.")
+            assert_project_allows_mutation(db, project_id)
 
         ref = reference_code.strip().upper()
         if not ref:
@@ -155,6 +157,8 @@ class WorkpaperService:
         self._assert_can_manage(tenant)
         engagement = get_owned_engagement(db, engagement_id, tenant)
         workpaper = self._get_current(db, engagement.id, workpaper_id)
+        assert_run_allows_mutation(db, workpaper.analysis_run_id)
+        assert_project_allows_mutation(db, workpaper.project_id)
 
         if title is not None:
             if not title.strip():
@@ -187,6 +191,8 @@ class WorkpaperService:
         self._assert_can_manage(tenant)
         engagement = get_owned_engagement(db, engagement_id, tenant)
         current = self._get_current(db, engagement.id, workpaper_id)
+        assert_run_allows_mutation(db, current.analysis_run_id)
+        assert_project_allows_mutation(db, current.project_id)
 
         if new_version and current.storage_key:
             root_id = current.root_workpaper_id or current.id

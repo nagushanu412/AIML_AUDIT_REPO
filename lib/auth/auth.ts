@@ -64,7 +64,7 @@ function buildSession(
       email: api.email,
       name: api.full_name,
       role: api.role as AuthSession["user"]["role"],
-      subscription: "professional",
+      subscription: "free",
       mfaEnabled: false,
       organizationId: api.organization_id ?? undefined,
       memberRole: api.member_role ?? undefined,
@@ -144,7 +144,11 @@ export async function register(
     });
     const session = buildSession(api, false);
     saveSession(session, false);
-    return { success: true, organizationId: data.companyName, session };
+    return {
+      success: true,
+      organizationId: api.organization_id ?? data.companyName,
+      session,
+    };
   } catch (err) {
     return {
       success: false,

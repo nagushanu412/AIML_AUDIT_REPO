@@ -6,29 +6,30 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_tenant_context
+from app.routers.errors import handle_service_error
 from app.schemas.finding_lifecycle import (
     FindingHistoryOut,
     FindingLifecycleOut,
     FindingListOut,
+    FindingRelationshipCreate,
+    FindingRelationshipOut,
     FindingStatusUpdate,
     ManagementResponseUpdate,
     RemediationUpdate,
 )
 from app.services.audit_log_service import AuditLogService
 from app.services.finding_lifecycle_service import FindingLifecycleService
+from app.services.finding_relationship_service import FindingRelationshipService
 from app.services.tenant_context import TenantContext
 
 router = APIRouter(tags=["Finding Lifecycle"])
 _findings = FindingLifecycleService()
+_relationships = FindingRelationshipService()
 _audit_logs = AuditLogService()
 
 
 def _handle_error(exc: Exception) -> HTTPException:
-    if isinstance(exc, PermissionError):
-        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
-    if isinstance(exc, ValueError):
-        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
-    raise exc
+    return handle_service_error(exc)
 
 
 @router.get("/engagements/{engagement_id}/findings", response_model=FindingListOut)
@@ -182,5 +183,83 @@ def list_finding_history(
             db, tenant, finding_id, limit=limit, offset=offset
         )
         return [FindingHistoryOut(**_findings.history_to_out(e)) for e in entries]
+    except (ValueError, PermissionError) as exc:
+        raise _handle_error(exc) from exc
+
+
+@router.get(
+    "/findings/{finding_id}/relationships",
+    response_model=list[FindingRelationshipOut],
+)
+def list_finding_relationships(
+    finding_id: UUID,
+    db: Session = Depends(get_db),
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
+):
+    try:
+        rows = _relationships.list_relationships(db, tenant, finding_id)
+        return [FindingRelationshipOut(**_relationships.to_out(r)) for r in rows]
+    except (ValueError, PermissionError) as exc:
+        raise _handle_error(exc) from exc
+
+
+@router.post(
+    "/findings/{finding_id}/relationships",
+    response_model=FindingRelationshipOut,
+    status_code=201,
+)
+def create_finding_relationship(
+    finding_id: UUID,
+    body: FindingRelationshipCreate,
+    db: Session = Depends(get_db),
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
+):
+    try:
+        row = _relationships.create_relationship(
+            db,
+            tenant,
+            finding_id,
+            target_finding_id=body.target_finding_id,
+            relationship_type=body.relationship_type,
+            notes=body.notes,
+        )
+        _audit_logs.write_log(
+            db,
+            action="finding.relationship_create",
+            entity_type="finding_relationship",
+            user_id=tenant.user.id,
+            organization_id=tenant.organization_id,
+            entity_id=row.id,
+            details={
+                "source_finding_id": str(finding_id),
+                "target_finding_id": str(body.target_finding_id),
+                "relationship_type": row.relationship_type,
+            },
+        )
+        return FindingRelationshipOut(**_relationships.to_out(row))
+    except (ValueError, PermissionError) as exc:
+        raise _handle_error(exc) from exc
+
+
+@router.delete(
+    "/findings/{finding_id}/relationships/{relationship_id}",
+    status_code=204,
+)
+def delete_finding_relationship(
+    finding_id: UUID,
+    relationship_id: UUID,
+    db: Session = Depends(get_db),
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
+):
+    try:
+        _relationships.delete_relationship(db, tenant, finding_id, relationship_id)
+        _audit_logs.write_log(
+            db,
+            action="finding.relationship_delete",
+            entity_type="finding_relationship",
+            user_id=tenant.user.id,
+            organization_id=tenant.organization_id,
+            entity_id=relationship_id,
+        )
     except (ValueError, PermissionError) as exc:
         raise _handle_error(exc) from exc

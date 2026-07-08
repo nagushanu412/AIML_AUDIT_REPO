@@ -6,7 +6,7 @@ export type UserRole =
   | "admin"
   | "client_viewer";
 
-export type SubscriptionTier = "trial" | "professional" | "enterprise";
+export type SubscriptionTier = "trial" | "free" | "professional" | "enterprise";
 
 export interface AuthUser {
   id: string;

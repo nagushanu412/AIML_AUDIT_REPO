@@ -161,6 +161,109 @@ class AnalysisRunService:
     ) -> ModuleAnalysisRun:
         return self._get_run(db, tenant, run_id)
 
+    def submit_for_review(
+        self, db: Session, tenant: TenantContext, run_id: uuid.UUID
+    ) -> ModuleAnalysisRun:
+        run = self._get_run(db, tenant, run_id)
+        self._assert_mutable(run)
+        if run.status != "completed":
+            raise ValueError("Only completed runs can be submitted for review.")
+        run.status = "under_review"
+        run.submitted_for_review_at = _now()
+        db.commit()
+        db.refresh(run)
+        return run
+
+    def approve_run(
+        self, db: Session, tenant: TenantContext, run_id: uuid.UUID
+    ) -> ModuleAnalysisRun:
+        run = self._get_run(db, tenant, run_id)
+        self._assert_mutable(run)
+        if run.status != "under_review":
+            raise ValueError("Only runs under review can be approved.")
+        if tenant.member_role not in {"partner", "organization_owner", "audit_manager"}:
+            raise PermissionError("Only partners or managers can approve analysis runs.")
+
+        now = _now()
+        run.status = "locked"
+        run.approved_at = now
+        run.locked_at = now
+        db.commit()
+        db.refresh(run)
+        return run
+
+    def return_to_auditor(
+        self, db: Session, tenant: TenantContext, run_id: uuid.UUID
+    ) -> ModuleAnalysisRun:
+        run = self._get_run(db, tenant, run_id)
+        self._assert_mutable(run)
+        if run.status != "under_review":
+            raise ValueError("Only runs under review can be returned to the auditor.")
+        run.status = "completed"
+        db.commit()
+        db.refresh(run)
+        return run
+
+    def designate_official(
+        self, db: Session, tenant: TenantContext, run_id: uuid.UUID
+    ) -> ModuleAnalysisRun:
+        run = self._get_run(db, tenant, run_id)
+        if tenant.member_role not in {"partner", "organization_owner"}:
+            raise PermissionError("Only partners can designate an official run.")
+        if run.status not in {"approved", "locked"}:
+            raise ValueError("Only approved or locked runs can be designated official.")
+        if not run.module_catalog_id:
+            raise ValueError("Run is not linked to a module.")
+
+        prior = (
+            db.query(ModuleAnalysisRun)
+            .filter(
+                ModuleAnalysisRun.engagement_id == run.engagement_id,
+                ModuleAnalysisRun.module_catalog_id == run.module_catalog_id,
+                ModuleAnalysisRun.is_official.is_(True),
+                ModuleAnalysisRun.id != run.id,
+            )
+            .all()
+        )
+        for previous in prior:
+            previous.is_official = False
+
+        run.is_official = True
+        db.commit()
+        db.refresh(run)
+        return run
+
+    def archive_run(
+        self, db: Session, tenant: TenantContext, run_id: uuid.UUID
+    ) -> ModuleAnalysisRun:
+        run = self._get_run(db, tenant, run_id)
+        if run.status not in {"locked", "approved"}:
+            raise ValueError("Only locked or approved runs can be archived.")
+        if tenant.member_role not in {
+            "partner",
+            "organization_owner",
+            "audit_manager",
+        }:
+            raise PermissionError("You do not have permission to archive this run.")
+        run.status = "archived"
+        run.archived_at = _now()
+        if run.is_official:
+            run.is_official = False
+        db.commit()
+        db.refresh(run)
+        return run
+
+    @staticmethod
+    def assert_run_mutable(run: ModuleAnalysisRun) -> None:
+        AnalysisRunService._assert_mutable(run)
+
+    @staticmethod
+    def _assert_mutable(run: ModuleAnalysisRun) -> None:
+        if run.status in {"locked", "archived"}:
+            raise ValueError(
+                "This analysis run is locked or archived. Create a new run to continue."
+            )
+
     @staticmethod
     def _get_run(
         db: Session, tenant: TenantContext, run_id: uuid.UUID

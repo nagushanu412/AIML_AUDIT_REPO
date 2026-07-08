@@ -18,6 +18,7 @@ from app.services.analysis_run_service import AnalysisRunService
 from app.services.engagement_module_service import EngagementModuleService
 from app.services.engagement_team_service import EngagementTeamService
 from app.services.project_access import get_owned_engagement
+from app.services.storage_adapter import save_report_artifact
 from app.services.tenant_context import TenantContext
 
 

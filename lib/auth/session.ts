@@ -1,4 +1,4 @@
-import { AUTH_STORAGE_KEYS } from "./constants";
+import { AUTH_SESSION_COOKIE, AUTH_STORAGE_KEYS } from "./constants";
 import { isAuditorPortalRole } from "./roles";
 import type { AuthSession } from "./types";
 
@@ -22,18 +22,30 @@ export function getSession(): AuthSession | null {
   return null;
 }
 
+function setAuthSessionCookie(): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${AUTH_SESSION_COOKIE}=1; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+}
+
+function clearAuthSessionCookie(): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${AUTH_SESSION_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+}
+
 export function saveSession(session: AuthSession, rememberMe = false): void {
   if (typeof window === "undefined") return;
   sessionStorage.removeItem(AUTH_STORAGE_KEYS.session);
   localStorage.removeItem(AUTH_STORAGE_KEYS.session);
   const storage = rememberMe ? localStorage : sessionStorage;
   storage.setItem(AUTH_STORAGE_KEYS.session, JSON.stringify(session));
+  setAuthSessionCookie();
 }
 
 export function clearSession(): void {
   if (typeof window === "undefined") return;
   sessionStorage.removeItem(AUTH_STORAGE_KEYS.session);
   localStorage.removeItem(AUTH_STORAGE_KEYS.session);
+  clearAuthSessionCookie();
 }
 
 export function getAccessToken(): string | null {

@@ -21,6 +21,7 @@ from app.services.file_storage_service import (
     save_evidence_file,
 )
 from app.services.project_access import get_owned_engagement, get_owned_project
+from app.services.run_lock_guard import assert_project_allows_mutation, assert_run_allows_mutation
 from app.services.tenant_context import TenantContext
 
 
@@ -101,6 +102,7 @@ class EvidenceService:
         engagement = get_owned_engagement(db, engagement_id, tenant)
         if project_id:
             self._validate_project_on_engagement(db, engagement.id, project_id, tenant)
+            assert_project_allows_mutation(db, project_id)
 
         normalized_category = self._validate_category(category)
         if not title.strip():
@@ -150,6 +152,8 @@ class EvidenceService:
         self._assert_can_manage(tenant)
         engagement = get_owned_engagement(db, engagement_id, tenant)
         current = self._get_current_evidence(db, engagement.id, evidence_id)
+        assert_run_allows_mutation(db, current.analysis_run_id)
+        assert_project_allows_mutation(db, current.project_id)
 
         root_id = current.root_evidence_id or current.id
         max_version = (
@@ -226,6 +230,8 @@ class EvidenceService:
         self._assert_can_manage(tenant)
         engagement = get_owned_engagement(db, engagement_id, tenant)
         evidence = self._get_current_or_any(db, engagement.id, evidence_id)
+        assert_run_allows_mutation(db, evidence.analysis_run_id)
+        assert_project_allows_mutation(db, evidence.project_id)
 
         entity_type = self._validate_entity_type(linked_entity_type)
         normalized_link = self._validate_link_type(link_type)

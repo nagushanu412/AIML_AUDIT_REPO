@@ -10,6 +10,8 @@ Enterprise SaaS documentation and architecture blueprint for the AIML Audit Anal
 |------|------|
 | Architecture Review (full gap analysis) | [ENTERPRISE_SAAS_ARCHITECTURE_REVIEW.md](./ENTERPRISE_SAAS_ARCHITECTURE_REVIEW.md) |
 | Project Status | [status/PROJECT_STATUS.md](./status/PROJECT_STATUS.md) |
+| Wave 0 Completion Report | [status/WAVE0_COMPLETION_REPORT.md](./status/WAVE0_COMPLETION_REPORT.md) |
+| Phase 3 Readiness Report | [status/PHASE3_READINESS_REPORT.md](./status/PHASE3_READINESS_REPORT.md) |
 | Implementation Roadmap | [roadmap/IMPLEMENTATION_ROADMAP.md](./roadmap/IMPLEMENTATION_ROADMAP.md) |
 | Next Steps | [status/NEXT_STEPS.md](./status/NEXT_STEPS.md) |
 

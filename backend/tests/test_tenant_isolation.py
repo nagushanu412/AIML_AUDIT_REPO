@@ -56,7 +56,8 @@ def test_client_list_filter_uses_org_when_present():
     user.id = uuid.uuid4()
     tenant = TenantContext(user=user, organization_id=org_id, member_role="auditor")
     clause = client_list_filter(tenant)
-    assert clause is not None
+    compiled = str(clause)
+    assert "organization_id" in compiled
 
 
 def test_client_list_filter_falls_back_to_user():

@@ -8,11 +8,13 @@ from app.database import get_db
 from app.deps import get_current_auditor
 from app.models.audit import OrganizationMember, User
 from app.schemas.member import MemberInvite, MemberOut, MemberUpdate
+from app.services.audit_log_service import AuditLogService
 from app.services.invite_service import send_member_invite_email
 from app.services.member_service import MemberService
 
 router = APIRouter(prefix="/organizations", tags=["Organization Members"])
 _member_service = MemberService()
+_audit_logs = AuditLogService()
 
 
 def _handle_service_error(exc: Exception) -> HTTPException:
@@ -68,6 +70,15 @@ def _invite_and_notify(
         is_new_user=result.is_new_user,
     )
     invite_link = email_result.invite_link if not email_result.sent else None
+    _audit_logs.write_log(
+        db,
+        action="member.invite",
+        entity_type="organization_member",
+        user_id=current_user.id,
+        organization_id=organization_id,
+        entity_id=result.member.id,
+        details={"email": body.email, "role": body.role},
+    )
     return _member_to_out(
         result.member,
         invite_email_sent=email_result.sent,
@@ -162,6 +173,15 @@ def update_my_organization_member(
             role=body.role,
             status=body.status,
         )
+        _audit_logs.write_log(
+            db,
+            action="member.update",
+            entity_type="organization_member",
+            user_id=current_user.id,
+            organization_id=org_id,
+            entity_id=member.id,
+            details={"role": member.role, "status": member.status},
+        )
         return _member_to_out(member)
     except (ValueError, PermissionError) as exc:
         raise _handle_service_error(exc) from exc
@@ -184,6 +204,15 @@ def update_organization_member(
             role=body.role,
             status=body.status,
         )
+        _audit_logs.write_log(
+            db,
+            action="member.update",
+            entity_type="organization_member",
+            user_id=current_user.id,
+            organization_id=organization_id,
+            entity_id=member.id,
+            details={"role": member.role, "status": member.status},
+        )
         return _member_to_out(member)
     except (ValueError, PermissionError) as exc:
         raise _handle_service_error(exc) from exc
@@ -198,6 +227,15 @@ def remove_my_organization_member(
     org_id = _resolve_organization_id(db, current_user, None)
     try:
         member = _member_service.remove_member(db, current_user, org_id, member_id)
+        _audit_logs.write_log(
+            db,
+            action="member.remove",
+            entity_type="organization_member",
+            user_id=current_user.id,
+            organization_id=org_id,
+            entity_id=member.id,
+            details={"status": member.status},
+        )
         return _member_to_out(member)
     except (ValueError, PermissionError) as exc:
         raise _handle_service_error(exc) from exc
@@ -213,6 +251,15 @@ def remove_organization_member(
     try:
         member = _member_service.remove_member(
             db, current_user, organization_id, member_id
+        )
+        _audit_logs.write_log(
+            db,
+            action="member.remove",
+            entity_type="organization_member",
+            user_id=current_user.id,
+            organization_id=organization_id,
+            entity_id=member.id,
+            details={"status": member.status},
         )
         return _member_to_out(member)
     except (ValueError, PermissionError) as exc:

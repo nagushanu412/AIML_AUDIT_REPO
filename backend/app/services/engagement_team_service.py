@@ -23,7 +23,10 @@ from app.services.engagement_team_constants import (
     EXCLUDED_ORG_ROLES_FOR_TEAM,
     HISTORY_ACTIONS,
 )
-from app.services.project_access import get_owned_engagement
+from app.services.project_access import (
+    ensure_engagement_organization_id,
+    get_owned_engagement,
+)
 from app.services.tenant_context import TenantContext
 
 
@@ -105,9 +108,10 @@ class EngagementTeamService:
     ) -> EngagementTeamMember:
         self._assert_can_manage_team(tenant)
         engagement = get_owned_engagement(db, engagement_id, tenant)
+        org_id = ensure_engagement_organization_id(db, engagement, tenant)
         normalized_role = self._validate_team_role(role)
 
-        org_member = self._resolve_org_member(db, engagement.organization_id, user_id)
+        org_member = self._resolve_org_member(db, org_id, user_id)
         self._assert_assignee_eligible(org_member, normalized_role)
 
         existing = (
@@ -197,10 +201,11 @@ class EngagementTeamService:
     ) -> EngagementTeamMember:
         self._assert_can_manage_team(tenant)
         engagement = get_owned_engagement(db, engagement_id, tenant)
+        org_id = ensure_engagement_organization_id(db, engagement, tenant)
         member = self._get_active_member(db, engagement.id, member_id)
 
         org_member = self._resolve_org_member(
-            db, engagement.organization_id, member.user_id
+            db, org_id, member.user_id
         )
 
         previous_role = member.role

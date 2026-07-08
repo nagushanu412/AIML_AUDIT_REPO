@@ -40,3 +40,6 @@ export const AUTH_STORAGE_KEYS = {
   session: "auditai_session",
   rememberEmail: "auditai_remember_email",
 } as const;
+
+/** Cookie mirror for Next.js middleware (localStorage is not available server-side). */
+export const AUTH_SESSION_COOKIE = "auditai_has_session";

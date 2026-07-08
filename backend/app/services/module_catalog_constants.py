@@ -232,3 +232,17 @@ PROJECT_TYPE_TO_MODULE_CODE = {
     "revenue_testing": "REVENUE_TESTING",
     "procurement_testing": "PROCUREMENT_TESTING",
 }
+
+MODULE_CODE_TO_PROJECT_TYPE: dict[str, str] = {
+    module_code: project_type
+    for project_type, module_code in PROJECT_TYPE_TO_MODULE_CODE.items()
+}
+
+MODULE_CODE_TO_NAME: dict[str, str] = {
+    entry["code"]: entry["name"] for entry in MODULE_CATALOG_SEED
+}
+
+PROJECT_TYPE_TO_MODULE_NAME: dict[str, str] = {
+    project_type: MODULE_CODE_TO_NAME[module_code]
+    for project_type, module_code in PROJECT_TYPE_TO_MODULE_CODE.items()
+}

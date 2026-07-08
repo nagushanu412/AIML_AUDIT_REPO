@@ -53,6 +53,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
             company_name=body.company_name.strip() if body.company_name else None,
             phone=body.phone.strip() if body.phone else None,
             role="auditor",
+            create_organization=True,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

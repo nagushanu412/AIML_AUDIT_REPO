@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, get_db
 from app.deps import get_tenant_context
 from app.models.audit import AuditModuleCatalog, ModuleAnalysisRun
+from app.routers.errors import handle_service_error
 from app.services.analysis_run_service import AnalysisRunService, SUGGESTED_RUN_NAMES
 from app.services.audit_log_service import AuditLogService
 from app.services.tenant_context import TenantContext
@@ -52,11 +53,7 @@ class AnalysisRunListOut(BaseModel):
 
 
 def _handle_error(exc: Exception) -> HTTPException:
-    if isinstance(exc, PermissionError):
-        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
-    if isinstance(exc, ValueError):
-        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
-    raise exc
+    return handle_service_error(exc)
 
 
 def _process_run_background(run_id: UUID) -> None:
@@ -202,5 +199,144 @@ def get_analysis_run(
             .first()
         )
         return AnalysisRunOut(**_runs.to_out(run, module))
+    except (ValueError, PermissionError) as exc:
+        raise _handle_error(exc) from exc
+
+
+def _run_out(db: Session, run: ModuleAnalysisRun) -> AnalysisRunOut:
+    module = (
+        db.query(AuditModuleCatalog)
+        .filter(AuditModuleCatalog.id == run.module_catalog_id)
+        .first()
+    )
+    return AnalysisRunOut(**_runs.to_out(run, module))
+
+
+@router.post(
+    "/{engagement_id}/runs/{run_id}/submit-review",
+    response_model=AnalysisRunOut,
+)
+def submit_analysis_run_for_review(
+    engagement_id: UUID,
+    run_id: UUID,
+    db: Session = Depends(get_db),
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
+):
+    del engagement_id
+    try:
+        run = _runs.submit_for_review(db, tenant, run_id)
+        _audit_logs.write_log(
+            db,
+            action="analysis.submit_review",
+            entity_type="module_analysis_run",
+            user_id=tenant.user.id,
+            organization_id=tenant.organization_id,
+            entity_id=run_id,
+        )
+        return _run_out(db, run)
+    except (ValueError, PermissionError) as exc:
+        raise _handle_error(exc) from exc
+
+
+@router.post(
+    "/{engagement_id}/runs/{run_id}/approve",
+    response_model=AnalysisRunOut,
+)
+def approve_analysis_run(
+    engagement_id: UUID,
+    run_id: UUID,
+    db: Session = Depends(get_db),
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
+):
+    del engagement_id
+    try:
+        run = _runs.approve_run(db, tenant, run_id)
+        _audit_logs.write_log(
+            db,
+            action="analysis.approve",
+            entity_type="module_analysis_run",
+            user_id=tenant.user.id,
+            organization_id=tenant.organization_id,
+            entity_id=run_id,
+        )
+        return _run_out(db, run)
+    except (ValueError, PermissionError) as exc:
+        raise _handle_error(exc) from exc
+
+
+@router.post(
+    "/{engagement_id}/runs/{run_id}/return",
+    response_model=AnalysisRunOut,
+)
+def return_analysis_run_to_auditor(
+    engagement_id: UUID,
+    run_id: UUID,
+    db: Session = Depends(get_db),
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
+):
+    del engagement_id
+    try:
+        run = _runs.return_to_auditor(db, tenant, run_id)
+        _audit_logs.write_log(
+            db,
+            action="analysis.return",
+            entity_type="module_analysis_run",
+            user_id=tenant.user.id,
+            organization_id=tenant.organization_id,
+            entity_id=run_id,
+        )
+        return _run_out(db, run)
+    except (ValueError, PermissionError) as exc:
+        raise _handle_error(exc) from exc
+
+
+@router.post(
+    "/{engagement_id}/runs/{run_id}/designate-official",
+    response_model=AnalysisRunOut,
+)
+def designate_official_analysis_run(
+    engagement_id: UUID,
+    run_id: UUID,
+    db: Session = Depends(get_db),
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
+):
+    del engagement_id
+    try:
+        run = _runs.designate_official(db, tenant, run_id)
+        _audit_logs.write_log(
+            db,
+            action="analysis.official_designated",
+            entity_type="module_analysis_run",
+            user_id=tenant.user.id,
+            organization_id=tenant.organization_id,
+            entity_id=run_id,
+        )
+        return _run_out(db, run)
+    except (ValueError, PermissionError) as exc:
+        raise _handle_error(exc) from exc
+
+
+@router.post(
+    "/{engagement_id}/runs/{run_id}/archive",
+    response_model=AnalysisRunOut,
+)
+def archive_analysis_run(
+    engagement_id: UUID,
+    run_id: UUID,
+    db: Session = Depends(get_db),
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
+):
+    del engagement_id
+    try:
+        run = _runs.archive_run(db, tenant, run_id)
+        _audit_logs.write_log(
+            db,
+            action="analysis.archive",
+            entity_type="module_analysis_run",
+            user_id=tenant.user.id,
+            organization_id=tenant.organization_id,
+            entity_id=run_id,
+        )
+        return _run_out(db, run)
     except (ValueError, PermissionError) as exc:
         raise _handle_error(exc) from exc

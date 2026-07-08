@@ -17,6 +17,25 @@ const STATUSES = [
   { value: "closed", label: "Closed" },
 ];
 
+const MODULE_FILTER_OPTIONS = [
+  { value: "", label: "All modules" },
+  { value: "JOURNAL_ENTRY_TESTING", label: "Journal Entry Testing" },
+  { value: "REVENUE_TESTING", label: "Revenue Testing" },
+  { value: "PROCUREMENT_TESTING", label: "Procurement Testing" },
+] as const;
+
+function moduleBadgeClass(moduleCode: string | null | undefined): string {
+  switch (moduleCode) {
+    case "REVENUE_TESTING":
+      return "bg-emerald-50 text-emerald-800 ring-emerald-100";
+    case "PROCUREMENT_TESTING":
+      return "bg-amber-50 text-amber-800 ring-amber-100";
+    case "JOURNAL_ENTRY_TESTING":
+    default:
+      return "bg-blue-50 text-blue-800 ring-blue-100";
+  }
+}
+
 interface EngagementFindingsPanelProps {
   engagementId: string;
 }
@@ -30,6 +49,7 @@ export function EngagementFindingsPanel({ engagementId }: EngagementFindingsPane
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
+  const [moduleFilter, setModuleFilter] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,6 +66,10 @@ export function EngagementFindingsPanel({ engagementId }: EngagementFindingsPane
       setLoading(false);
     }
   }, [engagementId, statusFilter]);
+
+  const visibleFindings = moduleFilter
+    ? findings.filter((f) => f.module_code === moduleFilter)
+    : findings;
 
   useEffect(() => {
     load();
@@ -71,19 +95,37 @@ export function EngagementFindingsPanel({ engagementId }: EngagementFindingsPane
   return (
     <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-4 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-slate-900">Findings Lifecycle</h3>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
-        >
-          <option value="">All statuses</option>
-          {STATUSES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">Findings Lifecycle</h3>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Each finding shows which AI module produced it.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={moduleFilter}
+            onChange={(e) => setModuleFilter(e.target.value)}
+            className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+          >
+            {MODULE_FILTER_OPTIONS.map((m) => (
+              <option key={m.value || "all"} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+          >
+            <option value="">All statuses</option>
+            {STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {error && (
@@ -96,6 +138,7 @@ export function EngagementFindingsPanel({ engagementId }: EngagementFindingsPane
         <table className="min-w-full divide-y divide-slate-200 text-xs">
           <thead className="bg-slate-50">
             <tr>
+              <th className="px-3 py-2 text-left font-medium text-slate-600">Module</th>
               <th className="px-3 py-2 text-left font-medium text-slate-600">Finding</th>
               <th className="px-3 py-2 text-left font-medium text-slate-600">Risk</th>
               <th className="px-3 py-2 text-left font-medium text-slate-600">Status</th>
@@ -103,15 +146,27 @@ export function EngagementFindingsPanel({ engagementId }: EngagementFindingsPane
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {findings.length === 0 ? (
+            {visibleFindings.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-3 py-4 text-center text-slate-500">
-                  No findings for this engagement. Run analysis on a module project first.
+                <td colSpan={5} className="px-3 py-4 text-center text-slate-500">
+                  {findings.length === 0
+                    ? "No findings for this engagement. Run analysis on a module project first."
+                    : "No findings match the selected module filter."}
                 </td>
               </tr>
             ) : (
-              findings.map((f) => (
+              visibleFindings.map((f) => (
                 <tr key={f.id}>
+                  <td className="px-3 py-2">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${moduleBadgeClass(f.module_code)}`}
+                    >
+                      {f.module_name ?? "Unknown module"}
+                    </span>
+                    {f.project_name ? (
+                      <div className="mt-1 text-[10px] text-slate-400">{f.project_name}</div>
+                    ) : null}
+                  </td>
                   <td className="px-3 py-2">
                     <div className="font-medium text-slate-900">{f.finding_title}</div>
                     <div className="text-slate-500">{f.rule_code}</div>

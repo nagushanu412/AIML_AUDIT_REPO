@@ -40,3 +40,24 @@ def test_approve_requires_elevated_role():
     tenant.member_role = "auditor"
     with pytest.raises(PermissionError, match="permission"):
         service._assert_can_approve(tenant)
+
+
+def test_resolve_module_labels_from_project_type():
+    service = FindingLifecycleService()
+    name, code = service._resolve_module_labels("revenue_testing", "REV_CUTOFF")
+    assert name == "Revenue Testing"
+    assert code == "REVENUE_TESTING"
+
+
+def test_resolve_module_labels_from_rule_code_prefix():
+    service = FindingLifecycleService()
+    name, code = service._resolve_module_labels(None, "PROC_DUPLICATE_PAYMENT")
+    assert name == "Procurement Testing"
+    assert code == "PROCUREMENT_TESTING"
+
+
+def test_resolve_module_labels_defaults_to_journal():
+    service = FindingLifecycleService()
+    name, code = service._resolve_module_labels(None, "LARGE_VALUE")
+    assert name == "Journal Entry Testing"
+    assert code == "JOURNAL_ENTRY_TESTING"

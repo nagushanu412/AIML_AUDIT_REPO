@@ -196,6 +196,7 @@ def register_user(
     company_name: str | None = None,
     phone: str | None = None,
     role: str = "auditor",
+    create_organization: bool = False,
 ) -> User:
     existing = db.query(User).filter(User.email == email).first()
     if existing:
@@ -210,6 +211,16 @@ def register_user(
         role=role,
     )
     db.add(user)
+    db.flush()
+
+    if create_organization:
+        from app.services.organization_service import OrganizationService
+
+        org_name = (company_name or "").strip() or full_name.strip()
+        if len(org_name) < 2:
+            org_name = email.split("@")[0].replace(".", " ").title()
+        OrganizationService().create_organization(db, user, name=org_name)
+
     db.commit()
     db.refresh(user)
     return user

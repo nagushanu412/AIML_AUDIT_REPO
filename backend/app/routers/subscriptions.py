@@ -11,10 +11,12 @@ from app.schemas.subscription import (
     SubscriptionPlanOut,
     SubscriptionSummaryOut,
 )
+from app.services.audit_log_service import AuditLogService
 from app.services.subscription_service import SubscriptionService
 
 router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
 _subscription_service = SubscriptionService()
+_audit_logs = AuditLogService()
 
 
 def _handle_service_error(exc: Exception) -> HTTPException:
@@ -53,6 +55,16 @@ def change_my_subscription_plan(
 ):
     try:
         _subscription_service.change_plan(db, current_user, plan_code=body.plan_code)
-        return _subscription_service.get_subscription_summary(db, current_user)
+        summary = _subscription_service.get_subscription_summary(db, current_user)
+        _audit_logs.write_log(
+            db,
+            action="subscription.change_plan",
+            entity_type="organization_subscription",
+            user_id=current_user.id,
+            organization_id=summary["subscription"]["organization_id"],
+            entity_id=summary["subscription"]["id"],
+            details={"plan_code": body.plan_code, "plan_name": summary["plan"]["name"]},
+        )
+        return summary
     except ValueError as exc:
         raise _handle_service_error(exc) from exc

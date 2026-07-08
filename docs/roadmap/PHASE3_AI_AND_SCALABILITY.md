@@ -89,11 +89,13 @@ Scale platform to 100–10,000+ firms, implement generic module architecture, ad
 |------|------------|
 | LLM hallucination in audit context | Human-in-the-loop; rules remain source of truth |
 | Module sprawl | Strict plugin interface reviews |
+| Phase 1/2 gaps block Phase 3 | Complete [Phase 3 Readiness Report](../status/PHASE3_READINESS_REPORT.md) Wave 0 first |
 
 ## Recommendations
 
 - Do not enable LLM on findings until Phase 2 review workflow exists
 - Performance test at 1,000 firms before marketing enterprise tier
+- **Read [PHASE3_READINESS_REPORT.md](../status/PHASE3_READINESS_REPORT.md) before starting implementation**
 
 ---
 

@@ -7,7 +7,28 @@ from sqlalchemy.orm import Session
 
 from app.models.audit import AuditEngagement, AuditProject, Client, RuleMaster, User
 from app.services.auth_service import ensure_demo_user
+from app.services.organization_service import OrganizationService
 from app.services.rule_config import DEFAULT_RULE_CONFIGS
+
+
+def ensure_demo_organization(db: Session, user: User):
+    """Ensure demo user has an organization and legacy clients are org-scoped."""
+    org_service = OrganizationService()
+    organization = org_service.get_user_organization(db, user)
+    if not organization:
+        organization = org_service.create_organization(db, user, name="Demo Audit Firm")
+
+    clients = db.query(Client).filter(Client.user_id == user.id).all()
+    for client in clients:
+        if client.organization_id != organization.id:
+            client.organization_id = organization.id
+        engagements = (
+            db.query(AuditEngagement).filter(AuditEngagement.client_id == client.id).all()
+        )
+        for engagement in engagements:
+            if engagement.organization_id != organization.id:
+                engagement.organization_id = organization.id
+    db.commit()
 
 
 def ensure_rule_configs(db: Session) -> None:
@@ -24,6 +45,11 @@ def ensure_rule_configs(db: Session) -> None:
 def seed_demo_hierarchy(db: Session) -> None:
     ensure_rule_configs(db)
     user = ensure_demo_user(db)
+    ensure_demo_organization(db, user)
+    org_service = OrganizationService()
+    organization = org_service.get_user_organization(db, user)
+    org_id = organization.id if organization else None
+
     client = (
         db.query(Client)
         .filter(Client.user_id == user.id, Client.name == "ABC Manufacturing")
@@ -32,6 +58,7 @@ def seed_demo_hierarchy(db: Session) -> None:
     if not client:
         client = Client(
             user_id=user.id,
+            organization_id=org_id,
             name="ABC Manufacturing",
             industry="Manufacturing",
             contact_person="Nagarajan",
@@ -39,6 +66,8 @@ def seed_demo_hierarchy(db: Session) -> None:
         )
         db.add(client)
         db.flush()
+    elif org_id and client.organization_id != org_id:
+        client.organization_id = org_id
 
     engagements_data = [
         ("FY 2024-25", date(2025, 3, 31)),
@@ -56,9 +85,12 @@ def seed_demo_hierarchy(db: Session) -> None:
         )
         if existing:
             engagement = existing
+            if org_id and engagement.organization_id != org_id:
+                engagement.organization_id = org_id
         else:
             engagement = AuditEngagement(
                 client_id=client.id,
+                organization_id=org_id,
                 financial_year=fy,
                 audit_type="Statutory",
                 status="active",

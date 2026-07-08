@@ -15,7 +15,12 @@ from app.services.finding_lifecycle_constants import (
     REMEDIATION_STATUSES,
     STATUS_TRANSITIONS,
 )
+from app.services.module_catalog_constants import (
+    PROJECT_TYPE_TO_MODULE_CODE,
+    PROJECT_TYPE_TO_MODULE_NAME,
+)
 from app.services.project_access import get_owned_engagement, get_owned_project
+from app.services.run_lock_guard import assert_project_allows_mutation
 from app.services.tenant_context import TenantContext
 
 
@@ -57,7 +62,8 @@ class FindingLifecycleService:
 
         total = query.count()
         items = (
-            query.order_by(AuditFinding.created_at.desc())
+            query.options(joinedload(AuditFinding.project))
+            .order_by(AuditFinding.created_at.desc())
             .offset(offset)
             .limit(min(limit, 100))
             .all()
@@ -81,6 +87,7 @@ class FindingLifecycleService:
     ) -> AuditFinding:
         self._assert_can_update(tenant)
         finding = self._get_owned_finding(db, tenant, finding_id)
+        assert_project_allows_mutation(db, finding.project_id)
         new_status = self._validate_status(status)
         current = finding.status or "open"
 
@@ -125,6 +132,7 @@ class FindingLifecycleService:
     ) -> AuditFinding:
         self._assert_can_update(tenant)
         finding = self._get_owned_finding(db, tenant, finding_id)
+        assert_project_allows_mutation(db, finding.project_id)
         if not response.strip():
             raise ValueError("Management response cannot be empty.")
 
@@ -158,6 +166,7 @@ class FindingLifecycleService:
     ) -> AuditFinding:
         self._assert_can_update(tenant)
         finding = self._get_owned_finding(db, tenant, finding_id)
+        assert_project_allows_mutation(db, finding.project_id)
 
         if remediation_status is not None:
             finding.remediation_status = self._validate_remediation_status(
@@ -208,6 +217,7 @@ class FindingLifecycleService:
     ) -> AuditFinding:
         finding = (
             db.query(AuditFinding)
+            .options(joinedload(AuditFinding.project))
             .join(AuditProject)
             .join(AuditProject.engagement)
             .filter(AuditFinding.id == finding_id)
@@ -283,10 +293,40 @@ class FindingLifecycleService:
         )
 
     @staticmethod
+    def module_context_for_finding(finding: AuditFinding) -> dict[str, str | None]:
+        project = finding.project
+        project_type = project.project_type if project else None
+        module_name, module_code = FindingLifecycleService._resolve_module_labels(
+            project_type, finding.rule_code
+        )
+        return {
+            "project_type": project_type,
+            "project_name": project.name if project else None,
+            "module_code": module_code,
+            "module_name": module_name,
+        }
+
+    @staticmethod
+    def _resolve_module_labels(
+        project_type: str | None, rule_code: str
+    ) -> tuple[str, str]:
+        if project_type and project_type in PROJECT_TYPE_TO_MODULE_NAME:
+            return (
+                PROJECT_TYPE_TO_MODULE_NAME[project_type],
+                PROJECT_TYPE_TO_MODULE_CODE[project_type],
+            )
+        if rule_code.startswith("REV_"):
+            return "Revenue Testing", "REVENUE_TESTING"
+        if rule_code.startswith("PROC_"):
+            return "Procurement Testing", "PROCUREMENT_TESTING"
+        return "Journal Entry Testing", "JOURNAL_ENTRY_TESTING"
+
+    @staticmethod
     def to_out(finding: AuditFinding) -> dict:
         return {
             "id": finding.id,
             "project_id": finding.project_id,
+            **FindingLifecycleService.module_context_for_finding(finding),
             "rule_code": finding.rule_code,
             "finding_title": finding.finding_title,
             "observation": finding.observation,

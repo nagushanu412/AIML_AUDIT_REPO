@@ -8,6 +8,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added — Wave 0 Milestone 2: Phase 2 Enterprise Workflow
+- Analysis run lifecycle API: submit-review, approve, return, designate-official, archive
+- Locked/archived run mutation guards (`run_lock_guard.py`) on evidence, workpapers, findings
+- Auto-workspace: audit project + draft analysis run created when module enabled on engagement
+- Cross-module `finding_relationships` table (migration 021) + CRUD API
+- Fixed consolidated report `save_report_artifact` import in `engagement_hub_service.py`
+- Engagement hub UI: official runs panel, lifecycle action buttons, status badges
+- Frontend API helpers for run lifecycle and finding relationships
+- Tests: `backend/tests/test_wave0_m2_phase2.py`
+
+### Added — Wave 0 Milestone 3: Refactoring
+- Shared `handle_service_error()` in `backend/app/routers/errors.py`
+
+### Added — Wave 0 Milestone 4: Testing
+- HTTP integration tests: `backend/tests/test_wave0_m4_integration.py`
+- Added `httpx` test dependency
+
+### Added — Wave 0 Milestone 5–6: Documentation
+- `WAVE0_M2`–`M5` milestone reports and `WAVE0_COMPLETION_REPORT.md`
+- Updated `PROJECT_STATUS.md`
+
+### Added — Wave 0 Milestone 1: Phase 1 Closeout
+- Registration auto-creates organization, owner membership, and Free subscription plan
+- Demo user seeded with `Demo Audit Firm` organization; clients/engagements backfilled with `organization_id`
+- Next.js `middleware.ts` protects `/dashboard/*` via session cookie
+- Org-scoped client list/access (removed `user_id` OR fallback when tenant has organization)
+- Audit logs on organization create/update/close, member invite/update/remove, subscription plan change
+- Removed orphan `app/api/auth/register` stub route
+- Tests: `backend/tests/test_wave0_m1_phase1.py`
+
 ### Added — Phase 1 Milestone 3: Organization Members
 - Alembic migration `009_organization_members.py`: `organization_members` table
 - Eight org-scoped roles with RBAC permission matrix (`member_constants.py`, `require_org_permission` in deps)

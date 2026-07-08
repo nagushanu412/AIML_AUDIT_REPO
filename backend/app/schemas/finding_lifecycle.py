@@ -11,6 +11,10 @@ class FindingLifecycleOut(BaseModel):
 
     id: UUID
     project_id: UUID
+    project_type: str | None = None
+    project_name: str | None = None
+    module_code: str | None = None
+    module_name: str | None = None
     rule_code: str
     finding_title: str
     observation: str
@@ -64,4 +68,23 @@ class FindingHistoryOut(BaseModel):
     management_response_snapshot: str | None
     changed_by: UUID | None
     changed_by_name: str | None
+    created_at: datetime
+
+
+class FindingRelationshipCreate(BaseModel):
+    target_finding_id: UUID
+    relationship_type: str = Field(default="related", max_length=50)
+    notes: str | None = Field(None, max_length=2000)
+
+
+class FindingRelationshipOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    engagement_id: UUID
+    source_finding_id: UUID
+    target_finding_id: UUID
+    relationship_type: str
+    notes: str | None
+    created_by: UUID | None
     created_at: datetime

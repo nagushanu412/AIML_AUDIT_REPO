@@ -20,6 +20,7 @@ import type {
   ApiEngagementReport,
   ApiFindingLifecycle,
   ApiFindingList,
+  ApiFindingRelationship,
   ApiWorkpaper,
   ApiWorkpaperList,
   ApiMessageResponse,
@@ -602,6 +603,26 @@ export function updateFindingRemediation(
   });
 }
 
+export function fetchFindingRelationships(findingId: string) {
+  return apiFetch<ApiFindingRelationship[]>(`/findings/${findingId}/relationships`);
+}
+
+export function createFindingRelationship(
+  findingId: string,
+  data: { target_finding_id: string; relationship_type?: string; notes?: string }
+) {
+  return apiFetch<ApiFindingRelationship>(`/findings/${findingId}/relationships`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteFindingRelationship(findingId: string, relationshipId: string) {
+  return apiFetch<void>(`/findings/${findingId}/relationships/${relationshipId}`, {
+    method: "DELETE",
+  });
+}
+
 export function fetchEngagementHub(engagementId: string) {
   return apiFetch<ApiEngagementHub>(`/engagements/${engagementId}/hub`);
 }
@@ -633,6 +654,41 @@ export function createAnalysisRun(
 export function startAnalysisRun(engagementId: string, runId: string) {
   return apiFetch<ApiAnalysisRun>(
     `/engagements/${engagementId}/runs/${runId}/start`,
+    { method: "POST" }
+  );
+}
+
+export function submitAnalysisRunForReview(engagementId: string, runId: string) {
+  return apiFetch<ApiAnalysisRun>(
+    `/engagements/${engagementId}/runs/${runId}/submit-review`,
+    { method: "POST" }
+  );
+}
+
+export function approveAnalysisRun(engagementId: string, runId: string) {
+  return apiFetch<ApiAnalysisRun>(
+    `/engagements/${engagementId}/runs/${runId}/approve`,
+    { method: "POST" }
+  );
+}
+
+export function returnAnalysisRunToAuditor(engagementId: string, runId: string) {
+  return apiFetch<ApiAnalysisRun>(
+    `/engagements/${engagementId}/runs/${runId}/return`,
+    { method: "POST" }
+  );
+}
+
+export function designateOfficialAnalysisRun(engagementId: string, runId: string) {
+  return apiFetch<ApiAnalysisRun>(
+    `/engagements/${engagementId}/runs/${runId}/designate-official`,
+    { method: "POST" }
+  );
+}
+
+export function archiveAnalysisRun(engagementId: string, runId: string) {
+  return apiFetch<ApiAnalysisRun>(
+    `/engagements/${engagementId}/runs/${runId}/archive`,
     { method: "POST" }
   );
 }

@@ -415,6 +415,10 @@ export interface ApiWorkpaperList {
 export interface ApiFindingLifecycle {
   id: string;
   project_id: string;
+  project_type: string | null;
+  project_name: string | null;
+  module_code: string | null;
+  module_name: string | null;
   rule_code: string;
   finding_title: string;
   observation: string;
@@ -437,6 +441,17 @@ export interface ApiFindingList {
   total: number;
   limit: number;
   offset: number;
+}
+
+export interface ApiFindingRelationship {
+  id: string;
+  engagement_id: string;
+  source_finding_id: string;
+  target_finding_id: string;
+  relationship_type: string;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface ApiAnalysisRun {

@@ -941,6 +941,62 @@ class FindingStatusHistory(Base):
     changer: Mapped["User | None"] = relationship(foreign_keys=[changed_by])
 
 
+class FindingRelationship(Base):
+    __tablename__ = "finding_relationships"
+    __table_args__ = (
+        CheckConstraint(
+            "relationship_type IN ("
+            "'related', 'supports', 'contradicts', 'duplicate_of', "
+            "'root_cause', 'adjustment_impact'"
+            ")",
+            name="ck_finding_relationships_type",
+        ),
+        UniqueConstraint(
+            "source_finding_id",
+            "target_finding_id",
+            "relationship_type",
+            name="uq_finding_relationships_pair_type",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    source_finding_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_findings.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    target_finding_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_findings.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    relationship_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="related"
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+
 class ReviewComment(Base):
     __tablename__ = "review_comments"
     __table_args__ = (

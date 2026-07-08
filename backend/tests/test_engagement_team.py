@@ -117,3 +117,29 @@ def test_history_rejects_invalid_action():
                 uuid.uuid4(),
                 action="deleted",
             )
+
+
+def test_ensure_engagement_organization_from_tenant():
+    from datetime import date
+
+    from app.models.audit import AuditEngagement, Client
+    from app.services.project_access import ensure_engagement_organization_id
+
+    org_id = uuid.uuid4()
+    client = Client(id=uuid.uuid4(), name="Test", user_id=uuid.uuid4(), organization_id=None)
+    engagement = AuditEngagement(
+        id=uuid.uuid4(),
+        client_id=client.id,
+        client=client,
+        organization_id=None,
+        financial_year="FY 2026-27",
+        financial_year_end=date(2027, 3, 31),
+    )
+    tenant = MagicMock()
+    tenant.organization_id = org_id
+    db = MagicMock()
+
+    resolved = ensure_engagement_organization_id(db, engagement, tenant)
+    assert resolved == org_id
+    assert engagement.organization_id == org_id
+    db.flush.assert_called_once()

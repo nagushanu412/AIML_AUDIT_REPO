@@ -5,10 +5,15 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.audit import AuditModuleCatalog, EngagementEnabledModule
+from app.models.audit import AuditModuleCatalog, AuditProject, EngagementEnabledModule, ModuleAnalysisRun
 from app.repositories.module_catalog_repository import ModuleCatalogRepository
+from app.services.analysis_run_service import SUGGESTED_RUN_NAMES
 from app.services.member_constants import role_has_permission
-from app.services.module_catalog_constants import PROJECT_TYPE_TO_MODULE_CODE
+from app.services.module_catalog_constants import (
+    MODULE_CODE_TO_PROJECT_TYPE,
+    MODULE_CODE_TO_NAME,
+    PROJECT_TYPE_TO_MODULE_CODE,
+)
 from app.services.project_access import get_owned_engagement
 from app.services.tenant_context import TenantContext
 
@@ -75,6 +80,8 @@ class EngagementModuleService:
         db.commit()
         db.refresh(row)
         row.module = module
+        self._ensure_module_workspace(db, engagement, module, tenant)
+        db.commit()
         return self._row_to_dict(row)
 
     def disable_module(
@@ -140,6 +147,63 @@ class EngagementModuleService:
                 enabled_by=user_id,
             )
         )
+
+    def _ensure_module_workspace(
+        self,
+        db: Session,
+        engagement,
+        module: AuditModuleCatalog,
+        tenant: TenantContext,
+    ) -> None:
+        """Auto-create legacy project + draft analysis run when a module is enabled."""
+        project_type = MODULE_CODE_TO_PROJECT_TYPE.get(module.code)
+        project = None
+        if project_type:
+            project = (
+                db.query(AuditProject)
+                .filter(
+                    AuditProject.engagement_id == engagement.id,
+                    AuditProject.project_type == project_type,
+                )
+                .first()
+            )
+            if not project:
+                project = AuditProject(
+                    engagement_id=engagement.id,
+                    name=MODULE_CODE_TO_NAME.get(module.code, module.name),
+                    project_type=project_type,
+                    status="active",
+                )
+                db.add(project)
+                db.flush()
+        else:
+            project = (
+                db.query(AuditProject)
+                .filter(AuditProject.engagement_id == engagement.id)
+                .first()
+            )
+
+        existing_draft = (
+            db.query(ModuleAnalysisRun)
+            .filter(
+                ModuleAnalysisRun.engagement_id == engagement.id,
+                ModuleAnalysisRun.module_catalog_id == module.id,
+                ModuleAnalysisRun.status == "draft",
+            )
+            .first()
+        )
+        if not existing_draft:
+            db.add(
+                ModuleAnalysisRun(
+                    engagement_id=engagement.id,
+                    project_id=project.id if project else None,
+                    module_catalog_id=module.id,
+                    organization_id=engagement.organization_id or tenant.organization_id,
+                    run_name=SUGGESTED_RUN_NAMES[0],
+                    status="draft",
+                    run_owner_id=tenant.user.id,
+                )
+            )
 
     @staticmethod
     def _assert_can_manage(tenant: TenantContext) -> None:
