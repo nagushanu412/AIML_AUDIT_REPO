@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { AuditModuleWorkspace } from "@/components/modules/AuditModuleWorkspace";
 import { JournalEntryTestingWorkspace } from "@/components/journal-entry-testing/JournalEntryTestingWorkspace";
+import { MODULE_CODES } from "@/lib/api/modules";
 import { MODULE_TITLE } from "@/lib/journal-entry-testing/constants";
 
 export const metadata: Metadata = {
@@ -12,7 +14,9 @@ export const metadata: Metadata = {
 export default function JournalEntryTestingPage() {
   return (
     <DashboardShell title={MODULE_TITLE} subtitle="Journal Entry Testing Workspace">
-      <JournalEntryTestingWorkspace />
+      <AuditModuleWorkspace moduleCode={MODULE_CODES.journal}>
+        <JournalEntryTestingWorkspace />
+      </AuditModuleWorkspace>
     </DashboardShell>
   );
 }

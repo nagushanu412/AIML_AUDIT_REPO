@@ -1,9 +1,10 @@
 # Project Status — AIML_AUDIT
 
-**Last updated:** July 8, 2026  
-**Branch:** `feature/phase3-m1-generic-framework`  
+**Last updated:** July 9, 2026  
+**Branch:** `feature/phase3-m2-module-migration`  
 **Wave 0:** Complete (Milestones 1–6)  
-**Phase 3 M1:** Complete (Generic Module Framework)
+**Phase 3 M1:** Complete (Generic Module Framework)  
+**Phase 3 M2:** Complete (Module Migration)
 
 ---
 
@@ -14,8 +15,9 @@
 | Phase 1 — SaaS Foundation | **~92%** |
 | Phase 2 — Enterprise Workflow | **~80%** |
 | Phase 3 — M1 Generic Framework | **100%** |
-| Overall Project | **~85%** |
-| Phase 3 Remaining (M2–M10) | **Pending approval** |
+| Phase 3 — M2 Module Migration | **100%** |
+| Overall Project | **~87%** |
+| Phase 3 Remaining (M3–M10) | **Pending approval** |
 
 See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 review.
 
@@ -64,16 +66,14 @@ See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 r
 - [x] HTTP integration tests (health, auth, protected routes)
 - [x] `npm run build` succeeds
 
-### Phase 3 Milestone 1 (Generic Module Framework)
-- [x] `ModuleProvider` protocol + 3 built-in plugins
-- [x] `ModuleRegistry` with runtime resolution
-- [x] Generic engines: Upload, Validation, Rule, Risk, Findings, Report, Analysis
-- [x] Generic REST API `/modules/{code}/*` (ADR-005)
-- [x] `AnalysisEngine` replaces background stub
-- [x] `LLMProvider` interface (no-op implementation)
-- [x] `module_plugin_config` + `feature_flags` tables (migration 022)
-- [x] `AuditModuleWorkspace` shell component (not wired to existing routes)
-- [x] Legacy APIs and UIs unchanged
+### Phase 3 Milestone 2 (Module Migration)
+- [x] Legacy routers shimmed to generic engines via `LegacyModuleAdapter`
+- [x] Journal, Revenue, Procurement plugins drive all module operations
+- [x] Deprecation headers on legacy mutation endpoints
+- [x] `AuditModuleWorkspace` hosts existing UIs (zero visual change)
+- [x] Generic API client `lib/api/modules.ts`
+- [x] Parity tests on sample xlsx fixtures (validator plugin vs direct service)
+- [x] **136** backend tests passing
 
 ---
 
@@ -121,10 +121,9 @@ See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 r
 - [ ] Legacy route shims → generic API (M2)
 - [ ] S3/blob storage for evidence and reports
 
-### Phase 3 — M2+ (Pending Approval)
-- Migrate Journal, Revenue, Procurement to `AuditModuleWorkspace`
+### Phase 3 — M3+ (Pending Approval)
+- Remaining catalog modules 4–22 via plugin registration
 - AI engine (M4), Billing (M5), Dashboards (M6), Scalability (M10)
-- Modules 4–22 via plugin registration
 
 ---
 
@@ -143,7 +142,7 @@ See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 r
 
 | Check | Status |
 |-------|--------|
-| `pytest` | 124 passed |
+| `pytest` | 136 passed |
 | `npm run build` | Success |
 | Migration 022 | Phase 3 M1 framework |
 
@@ -153,7 +152,7 @@ See [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) for full Wave 0 r
 
 | Document | Purpose |
 |----------|---------|
-| [PHASE3_M1_COMPLETION_REPORT.md](./PHASE3_M1_COMPLETION_REPORT.md) | Phase 3 M1 deliverables |
+| [PHASE3_M2_COMPLETION_REPORT.md](./PHASE3_M2_COMPLETION_REPORT.md) | Phase 3 M2 module migration |
 | [PHASE3_IMPLEMENTATION_GUIDE.md](../roadmap/PHASE3_IMPLEMENTATION_GUIDE.md) | Phase 3 implementation guide |
 | [WAVE0_COMPLETION_REPORT.md](./WAVE0_COMPLETION_REPORT.md) | Final Wave 0 review |
 | [PHASE3_READINESS_REPORT.md](./PHASE3_READINESS_REPORT.md) | Pre-Phase 3 baseline |

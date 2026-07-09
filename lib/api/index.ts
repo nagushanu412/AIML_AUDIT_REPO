@@ -55,6 +55,7 @@ import type {
 
 export * from "./client";
 export * from "./config";
+export * from "./modules";
 export * from "./types";
 
 export function loginApi(email: string, password: string) {

@@ -1,5 +1,7 @@
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { AuditModuleWorkspace } from "@/components/modules/AuditModuleWorkspace";
 import { RevenueTestingWorkspace } from "@/components/revenue-testing/RevenueTestingWorkspace";
+import { MODULE_CODES } from "@/lib/api/modules";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -13,7 +15,9 @@ export default function RevenueTestingPage() {
       title="Revenue Testing"
       subtitle="Enterprise workstream — sales register upload, AI analysis, and exception reporting"
     >
-      <RevenueTestingWorkspace />
+      <AuditModuleWorkspace moduleCode={MODULE_CODES.revenue}>
+        <RevenueTestingWorkspace />
+      </AuditModuleWorkspace>
     </DashboardShell>
   );
 }

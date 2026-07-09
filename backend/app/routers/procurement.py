@@ -1,13 +1,12 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.database import get_db
 from app.deps import get_tenant_context
-from app.models.audit import AuditFinding, AuditProject
+from app.models.audit import AuditProject
 from app.schemas.analytics import FindingOut
 from app.schemas.procurement import (
     ProcurementRiskScoreOut,
@@ -15,19 +14,11 @@ from app.schemas.procurement import (
     ProcurementRunRulesResponse,
     ProcurementUploadResponse,
 )
+from app.services.module_framework.legacy_adapter import DEPRECATION_HEADERS, MODULE_CODES, legacy_adapter
 from app.services.project_access import get_owned_project
 from app.services.tenant_context import TenantContext
-from app.services.procurement_findings_service import generate_procurement_findings
-from app.services.procurement_risk_scoring import (
-    get_procurement_risk_scores,
-    run_procurement_risk_scoring,
-)
-from app.services.procurement_rule_runner import run_procurement_rules_for_project
-from app.services.procurement_upload_service import save_procurement_invoices
-from app.services.procurement_validator import validate_procurement_excel
 
 router = APIRouter(prefix="/procurement", tags=["Procurement Testing"])
-settings = get_settings()
 
 
 def _ensure_procurement_project(project: AuditProject) -> None:
@@ -42,48 +33,38 @@ def _ensure_procurement_project(project: AuditProject) -> None:
 async def upload_procurement_file(
     project_id: UUID = Query(...),
     file: UploadFile = File(...),
+    response: Response = None,
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
+    for key, value in DEPRECATION_HEADERS.items():
+        response.headers[key] = value.replace("{code}", "PROCUREMENT_TESTING")
+
     project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
-
-    if not file.filename or not file.filename.lower().endswith(".xlsx"):
-        raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
-
+    legacy_adapter.validate_xlsx(file.filename)
     content = await file.read()
-    if len(content) > settings.max_upload_bytes:
-        raise HTTPException(status_code=413, detail=f"File exceeds {settings.max_upload_mb} MB.")
-
-    validation, df, total_taxable, total_gst, total_spend = validate_procurement_excel(content)
-    if not validation.is_valid or df is None:
-        raise HTTPException(
-            status_code=422,
-            detail={"message": "Procurement file validation failed.", "validation": validation.model_dump()},
-        )
-
-    count = save_procurement_invoices(db, project, df)
-    return ProcurementUploadResponse(
-        project_id=project.id,
-        validation=validation,
-        invoices_imported=count,
-        total_taxable=total_taxable,
-        total_gst=total_gst,
-        total_spend=total_spend,
-        message=f"Imported {count} vendor invoices successfully.",
-    )
+    legacy_adapter.validate_size(content)
+    return legacy_adapter.invoice_upload(db, tenant, "procurement", project_id, content)
 
 
 @router.post("/run-rules", response_model=ProcurementRunRulesResponse)
 def run_procurement_rules(
     project_id: UUID = Query(...),
+    response: Response = None,
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
+    for key, value in DEPRECATION_HEADERS.items():
+        response.headers[key] = value.replace("{code}", "PROCUREMENT_TESTING")
+
     project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
     try:
-        return ProcurementRunRulesResponse(**run_procurement_rules_for_project(db, project_id))
+        result = legacy_adapter.run_rules(
+            db, tenant, MODULE_CODES["procurement"], project_id
+        )
+        return ProcurementRunRulesResponse(**result)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -91,13 +72,20 @@ def run_procurement_rules(
 @router.post("/run-risk", response_model=ProcurementRunRiskResponse)
 def run_procurement_risk(
     project_id: UUID = Query(...),
+    response: Response = None,
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
+    for key, value in DEPRECATION_HEADERS.items():
+        response.headers[key] = value.replace("{code}", "PROCUREMENT_TESTING")
+
     project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
     try:
-        return ProcurementRunRiskResponse(**run_procurement_risk_scoring(db, project_id))
+        result = legacy_adapter.run_risk(
+            db, tenant, MODULE_CODES["procurement"], project_id
+        )
+        return ProcurementRunRiskResponse(**result)
     except Exception as exc:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -114,29 +102,33 @@ def list_procurement_risk_scores(
 ):
     project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
-    rows = get_procurement_risk_scores(
-        db, project_id, risk_category=risk_category, limit=limit, offset=offset
+    rows = legacy_adapter.list_risk_scores(
+        db,
+        tenant,
+        MODULE_CODES["procurement"],
+        project_id,
+        risk_category=risk_category,
+        limit=limit,
+        offset=offset,
     )
-    return [
-        ProcurementRiskScoreOut(
-            **row,
-            invoice_date=row["invoice_date"].isoformat() if row.get("invoice_date") else None,
-            total_amount=float(row["total_amount"]),
-            gst_amount=float(row["gst_amount"]),
-        )
-        for row in rows
-    ]
+    return legacy_adapter.map_procurement_risk_scores(rows)
 
 
 @router.post("/generate-findings", response_model=list[FindingOut])
 def create_procurement_findings(
     project_id: UUID = Query(...),
+    response: Response = None,
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
+    for key, value in DEPRECATION_HEADERS.items():
+        response.headers[key] = value.replace("{code}", "PROCUREMENT_TESTING")
+
     project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
-    return generate_procurement_findings(db, project_id)
+    return legacy_adapter.generate_findings(
+        db, tenant, MODULE_CODES["procurement"], project_id
+    )
 
 
 @router.get("/findings", response_model=list[FindingOut])
@@ -147,9 +139,6 @@ def list_procurement_findings(
 ):
     project = get_owned_project(db, project_id, tenant)
     _ensure_procurement_project(project)
-    return (
-        db.query(AuditFinding)
-        .filter(AuditFinding.project_id == project_id)
-        .order_by(AuditFinding.created_at.desc())
-        .all()
+    return legacy_adapter.list_findings(
+        db, tenant, MODULE_CODES["procurement"], project_id
     )

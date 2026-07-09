@@ -1,8 +1,8 @@
 # Phase 3 Implementation Guide
 
-**Status:** Milestone 1 complete  
-**Branch:** `feature/phase3-m1-generic-framework`  
-**Last updated:** July 8, 2026
+**Status:** Milestones 1–2 complete  
+**Branch:** `feature/phase3-m2-module-migration`  
+**Last updated:** July 9, 2026
 
 ---
 
@@ -82,7 +82,7 @@ Triggered by `POST /engagements/{id}/runs/{run_id}/start` via `BackgroundTasks`.
 | LLM abstraction | `backend/app/services/module_framework/llm_provider.py` |
 | Generic API | `backend/app/routers/generic_modules.py` |
 | Workspace shell | `components/modules/AuditModuleWorkspace.tsx` |
-| Migration | `backend/alembic/versions/022_phase3_m1_module_framework.py` |
+| Legacy adapter | `backend/app/services/module_framework/legacy_adapter.py` |
 
 ---
 
@@ -106,14 +106,35 @@ Legacy routes (`/upload`, `/revenue/*`, `/procurement/*`) remain unchanged.
 
 ---
 
-## Milestone 2 — Next Steps (Pending Approval)
+## Milestone 2 — Existing Module Migration (Complete)
 
-1. Wire `AuditModuleWorkspace` to Journal, Revenue, Procurement routes
-2. Add legacy shims delegating to generic engines
-3. Golden-file regression parity tests
-4. Visual regression (Playwright)
+### Delivered
 
-**Do not start M2 without explicit approval.**
+- Legacy routers are thin shims via `LegacyModuleAdapter`
+- All three modules execute through generic engines + plugins
+- `AuditModuleWorkspace` wraps existing module pages (no visual change)
+- Generic API client available at `lib/api/modules.ts`
+- Parity validated on sample xlsx fixtures
+
+### Legacy Shim Map
+
+| Legacy | Module Code | Generic Engine |
+|--------|-------------|----------------|
+| `/upload` | `JOURNAL_ENTRY_TESTING` | UploadEngine |
+| `/run-rules` | `JOURNAL_ENTRY_TESTING` | RuleEngineService |
+| `/run-risk`, `/findings`, `/reports` | `JOURNAL_ENTRY_TESTING` | Risk/Findings/Report engines |
+| `/revenue/*` | `REVENUE_TESTING` | All engines |
+| `/procurement/*` | `PROCUREMENT_TESTING` | All engines |
+
+---
+
+## Milestone 3 — Next Steps (Pending Approval)
+
+1. Register P1 modules (GST Mismatch, Bank Reconciliation, Payroll) via plugin config only
+2. No new routers — use `/modules/{code}/*` exclusively
+3. Per-module acceptance template (5 rules, 1 report)
+
+**Do not start M3 without explicit approval.**
 
 ---
 
@@ -124,10 +145,11 @@ cd backend && pytest tests/ -q
 cd .. && npm run build
 ```
 
-M1-specific tests:
+Phase 3 tests:
 
 - `backend/tests/test_phase3_m1_framework.py`
 - `backend/tests/test_phase3_m1_api.py`
+- `backend/tests/test_phase3_m2_parity.py`
 
 ---
 

@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added — Phase 3 Milestone 2: Module Migration
+- Legacy routers (`/upload`, `/run-rules`, `/revenue/*`, `/procurement/*`, analytics) shimmed to generic engines
+- `LegacyModuleAdapter` centralizes legacy → framework delegation
+- Plugin `legacy_payload` preserves identical legacy API response shapes
+- Deprecation headers on legacy mutation endpoints (Sunset 2026-12-31)
+- `lib/api/modules.ts` generic module API client
+- `AuditModuleWorkspace` hosts Journal/Revenue/Procurement pages (UI unchanged)
+- Parity tests: `test_phase3_m2_parity.py` (136 total tests passing)
+- Documentation: `PHASE3_M2_COMPLETION_REPORT.md`
+
 ### Added — Phase 3 Milestone 1: Generic Module Framework
 - Generic Module Framework (`backend/app/services/module_framework/`)
   - `ModuleProvider` protocol, `ModuleRegistry`, 3 built-in plugins

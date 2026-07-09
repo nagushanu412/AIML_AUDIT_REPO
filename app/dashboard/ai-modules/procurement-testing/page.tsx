@@ -1,5 +1,7 @@
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { AuditModuleWorkspace } from "@/components/modules/AuditModuleWorkspace";
 import { ProcurementTestingWorkspace } from "@/components/procurement-testing/ProcurementTestingWorkspace";
+import { MODULE_CODES } from "@/lib/api/modules";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -13,7 +15,9 @@ export default function ProcurementTestingPage() {
       title="Procurement Testing"
       subtitle="Enterprise workstream — vendor invoice register upload, AI analysis, and exception reporting"
     >
-      <ProcurementTestingWorkspace />
+      <AuditModuleWorkspace moduleCode={MODULE_CODES.procurement}>
+        <ProcurementTestingWorkspace />
+      </AuditModuleWorkspace>
     </DashboardShell>
   );
 }

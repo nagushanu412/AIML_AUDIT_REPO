@@ -3,18 +3,16 @@ from uuid import UUID
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_tenant_context
-from app.models.audit import AuditEngagement, AuditFinding, AuditProject, Client, Report
+from app.models.audit import AuditEngagement, AuditProject, Client, Report
 from app.schemas.analytics import FindingOut, ReportOut, RiskScoreOut, RunRiskResponse
-from app.services.findings_service import generate_findings
-from app.services.project_access import client_list_filter, get_owned_project
-from app.services.report_service import generate_project_report
-from app.services.risk_scoring import get_risk_scores, run_risk_scoring
+from app.services.module_framework.legacy_adapter import DEPRECATION_HEADERS, MODULE_CODES, legacy_adapter
+from app.services.project_access import client_list_filter
 from app.services.tenant_context import TenantContext
 
 router = APIRouter(tags=["Analytics"])
@@ -23,12 +21,16 @@ router = APIRouter(tags=["Analytics"])
 @router.post("/run-risk", response_model=RunRiskResponse)
 def run_risk(
     project_id: UUID = Query(..., description="Audit project UUID"),
+    response: Response = None,
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    get_owned_project(db, project_id, tenant)
+    for key, value in DEPRECATION_HEADERS.items():
+        response.headers[key] = value.replace("{code}", "JOURNAL_ENTRY_TESTING")
+
     try:
-        return run_risk_scoring(db, project_id)
+        result = legacy_adapter.run_risk(db, tenant, MODULE_CODES["journal"], project_id)
+        return RunRiskResponse(**result)
     except Exception as exc:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -43,9 +45,14 @@ def list_risk_scores(
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    get_owned_project(db, project_id, tenant)
-    rows = get_risk_scores(
-        db, project_id, risk_category=risk_category, limit=limit, offset=offset
+    rows = legacy_adapter.list_risk_scores(
+        db,
+        tenant,
+        MODULE_CODES["journal"],
+        project_id,
+        risk_category=risk_category,
+        limit=limit,
+        offset=offset,
     )
     return [RiskScoreOut(**row) for row in rows]
 
@@ -53,12 +60,16 @@ def list_risk_scores(
 @router.post("/generate-findings", response_model=list[FindingOut])
 def create_findings(
     project_id: UUID = Query(...),
+    response: Response = None,
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    get_owned_project(db, project_id, tenant)
-    findings = generate_findings(db, project_id)
-    return findings
+    for key, value in DEPRECATION_HEADERS.items():
+        response.headers[key] = value.replace("{code}", "JOURNAL_ENTRY_TESTING")
+
+    return legacy_adapter.generate_findings(
+        db, tenant, MODULE_CODES["journal"], project_id
+    )
 
 
 @router.get("/findings", response_model=list[FindingOut])
@@ -67,12 +78,8 @@ def list_findings(
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    get_owned_project(db, project_id, tenant)
-    return (
-        db.query(AuditFinding)
-        .filter(AuditFinding.project_id == project_id)
-        .order_by(AuditFinding.created_at.desc())
-        .all()
+    return legacy_adapter.list_findings(
+        db, tenant, MODULE_CODES["journal"], project_id
     )
 
 
@@ -82,17 +89,7 @@ def list_reports(
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    query = (
-        db.query(Report)
-        .join(AuditProject)
-        .join(AuditEngagement)
-        .join(Client)
-        .filter(client_list_filter(tenant))
-    )
-    if project_id:
-        get_owned_project(db, project_id, tenant)
-        query = query.filter(Report.project_id == project_id)
-    rows = query.order_by(Report.created_at.desc()).limit(100).all()
+    rows = legacy_adapter.list_reports(db, tenant, project_id)
     return [
         ReportOut(
             id=r.id,
@@ -111,11 +108,14 @@ def list_reports(
 def create_report(
     project_id: UUID = Query(...),
     report_type: str = Query("journal_audit_summary"),
+    response: Response = None,
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
-    project = get_owned_project(db, project_id, tenant)
-    report = generate_project_report(db, project, tenant.user.id, report_type)
+    for key, value in DEPRECATION_HEADERS.items():
+        response.headers[key] = value.replace("{code}", "JOURNAL_ENTRY_TESTING")
+
+    report = legacy_adapter.generate_report(db, tenant, project_id, report_type)
     return ReportOut(
         id=report.id,
         project_id=report.project_id,

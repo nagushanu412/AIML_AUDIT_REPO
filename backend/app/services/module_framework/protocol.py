@@ -44,6 +44,7 @@ class RunRulesResult:
     total_violations: int
     rule_summary: dict[str, int]
     message: str = ""
+    legacy_payload: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -54,6 +55,7 @@ class RunRiskResult:
     medium_risk: int
     low_risk: int
     message: str = ""
+    legacy_payload: dict = field(default_factory=dict)
 
 
 @dataclass

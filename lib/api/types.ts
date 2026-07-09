@@ -614,3 +614,58 @@ export interface ApiProcurementRiskScore {
   gst_amount: number;
   payment_status?: string | null;
 }
+
+export interface ApiModuleWorkspaceConfig {
+  module_code: string;
+  metadata: {
+    code: string;
+    name: string;
+    project_type: string;
+    slug: string;
+    category: string;
+    icon: string;
+    implementation_status: string;
+    input_format: string;
+    rule_prefix: string;
+    theme_color: string;
+    ui_config: Record<string, unknown>;
+    plugin_config: Record<string, unknown>;
+  };
+  pipeline_steps: string[];
+  supported_endpoints: string[];
+}
+
+export interface ApiGenericUploadResponse {
+  project_id: string;
+  module_code: string;
+  validation: ApiUploadResponse["validation"];
+  records_imported: number;
+  message: string;
+  extras: Record<string, unknown>;
+}
+
+export interface ApiGenericRunRulesResponse {
+  project_id: string;
+  module_code: string;
+  total_rules_run: number;
+  total_violations: number;
+  rule_summary: Record<string, number>;
+  message: string;
+}
+
+export interface ApiGenericRunRiskResponse {
+  project_id: string;
+  module_code: string;
+  total_scored: number;
+  high_risk: number;
+  medium_risk: number;
+  low_risk: number;
+  message: string;
+}
+
+export interface ApiGenericFindingsResponse {
+  project_id: string;
+  module_code: string;
+  total: number;
+  items: ApiAuditFinding[];
+}

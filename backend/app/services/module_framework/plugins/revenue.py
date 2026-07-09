@@ -54,6 +54,7 @@ class RevenuePlugin(BaseModuleProvider):
             total_violations=result.get("total_violations_found", 0),
             rule_summary=result.get("violations_by_rule", {}),
             message=result.get("message", "Revenue rules executed."),
+            legacy_payload=result,
         )
 
     def run_risk(self, db: Session, project_id: uuid.UUID) -> RunRiskResult:
@@ -65,6 +66,7 @@ class RevenuePlugin(BaseModuleProvider):
             medium_risk=result.get("medium_risk", 0),
             low_risk=result.get("low_risk", 0),
             message=result.get("message", "Revenue risk scoring completed."),
+            legacy_payload=result,
         )
 
     def generate_findings(self, db: Session, project_id: uuid.UUID) -> list:

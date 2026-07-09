@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -13,8 +13,7 @@ from app.schemas.rules import (
     RuleResultsListResponse,
     RunRulesResponse,
 )
-from app.services.project_access import get_owned_project
-from app.services.rule_runner import get_rule_results, run_rules_for_project
+from app.services.module_framework.legacy_adapter import DEPRECATION_HEADERS, MODULE_CODES, legacy_adapter
 from app.services.tenant_context import TenantContext
 
 router = APIRouter(tags=["Rule Engine"])
@@ -30,13 +29,19 @@ def _parse_project_id(project_id: str) -> uuid.UUID:
 @router.post("/run-rules", response_model=RunRulesResponse)
 def run_rules(
     project_id: str = Query(..., description="Audit project UUID (required)"),
+    response: Response = None,
     db: Session = Depends(get_db),
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
+    for key, value in DEPRECATION_HEADERS.items():
+        response.headers[key] = value.replace("{code}", "JOURNAL_ENTRY_TESTING")
+
     parsed_id = _parse_project_id(project_id)
-    get_owned_project(db, parsed_id, tenant)
     try:
-        return run_rules_for_project(db, parsed_id)
+        result = legacy_adapter.run_rules(
+            db, tenant, MODULE_CODES["journal"], parsed_id
+        )
+        return RunRulesResponse(**result)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
@@ -54,13 +59,8 @@ def list_rule_results(
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
     parsed_id = _parse_project_id(project_id)
-    get_owned_project(db, parsed_id, tenant)
-    rows = get_rule_results(
-        db,
-        parsed_id,
-        rule_code=rule_code,
-        limit=limit,
-        offset=offset,
+    rows = legacy_adapter.journal_rule_results(
+        db, tenant, parsed_id, rule_code=rule_code, limit=limit, offset=offset
     )
     return RuleResultsListResponse(
         project_id=parsed_id,
