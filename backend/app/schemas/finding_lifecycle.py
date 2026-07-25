@@ -22,11 +22,14 @@ class FindingLifecycleOut(BaseModel):
     impact: str
     recommendation: str
     affected_count: int
+    rule_content_version: int | None = None
     status: str
     management_response: str | None
     remediation_status: str
     remediation_notes: str | None
     remediation_due_date: date | None
+    reviewed_by: UUID | None = None
+    reviewed_at: datetime | None = None
     updated_by: UUID | None
     created_at: datetime
     updated_at: datetime

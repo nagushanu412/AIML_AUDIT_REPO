@@ -42,8 +42,14 @@ def create_engagement(
         _enforcement.assert_can_add_engagement(db, tenant)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    organization_id = client.organization_id or tenant.organization_id
+    if not organization_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot create engagement without an organization_id.",
+        )
     engagement = AuditEngagement(
-        organization_id=client.organization_id or tenant.organization_id,
+        organization_id=organization_id,
         **body.model_dump(),
     )
     db.add(engagement)

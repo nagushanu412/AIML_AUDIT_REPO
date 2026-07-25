@@ -11,6 +11,8 @@ from app.database import get_db
 from app.deps import get_tenant_context
 from app.models.audit import AuditEngagement, AuditProject, Client, Report
 from app.schemas.analytics import FindingOut, ReportOut, RiskScoreOut, RunRiskResponse
+from app.routers.errors import handle_service_error
+from app.services.evidence_gate import EvidenceGateViolation
 from app.services.module_framework.legacy_adapter import DEPRECATION_HEADERS, MODULE_CODES, legacy_adapter
 from app.services.project_access import client_list_filter
 from app.services.tenant_context import TenantContext
@@ -31,6 +33,10 @@ def run_risk(
     try:
         result = legacy_adapter.run_risk(db, tenant, MODULE_CODES["journal"], project_id)
         return RunRiskResponse(**result)
+    except HTTPException:
+        raise
+    except EvidenceGateViolation as exc:
+        raise handle_service_error(exc) from exc
     except Exception as exc:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(exc)) from exc

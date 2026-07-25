@@ -2,6 +2,9 @@ from __future__ import annotations
 
 FINDING_STATUSES = frozenset({"open", "under_review", "cleared", "accepted", "closed"})
 
+# Statuses that have not yet received an auditor decision stamp.
+PRE_DECISION_STATUSES = frozenset({"open", "under_review"})
+
 REMEDIATION_STATUSES = frozenset({"not_started", "in_progress", "completed", "overdue"})
 
 STATUS_TRANSITIONS: dict[str, frozenset[str]] = {

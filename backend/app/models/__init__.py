@@ -20,6 +20,9 @@ from app.models.audit import (
     RuleResult,
     User,
 )
+from app.models.organization_id_events import register_organization_id_listeners
+
+register_organization_id_listeners()
 
 __all__ = [
     "User",

@@ -102,7 +102,8 @@ def generate_procurement_findings(db: Session, project_id: uuid.UUID) -> list[Au
                     "recommendation", "Perform substantive AP procedures on flagged invoices."
                 ),
                 affected_count=len(items),
-                journal_entry_ids=[str(v.procurement_invoice_id) for v in items],
+                source_record_ids=[str(v.procurement_invoice_id) for v in items],
+                rule_content_version=rule.rule_content_version if rule else None,
             )
         )
 

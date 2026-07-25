@@ -42,6 +42,8 @@ def run_rules(
             db, tenant, MODULE_CODES["journal"], parsed_id
         )
         return RunRulesResponse(**result)
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:

@@ -96,7 +96,8 @@ def generate_findings(db: Session, project_id: uuid.UUID) -> list[AuditFinding]:
                     "recommendation", "Perform substantive procedures on flagged entries."
                 ),
                 affected_count=len(items),
-                journal_entry_ids=entry_ids,
+                source_record_ids=entry_ids,
+                rule_content_version=rule.rule_content_version if rule else None,
             )
         )
 

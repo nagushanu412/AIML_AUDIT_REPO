@@ -121,13 +121,23 @@ class ReviewWorkflowService:
         approval.approver_id = tenant.user.id
         approval.approved_at = _now()
 
+        # Approval-row updates are partner-workflow specific; finding status must
+        # go through FindingLifecycleService.update_status (history + reviewed_*).
+        finding_status_committed = False
         if normalized == "approved" and approval.finding_id:
             finding = db.query(AuditFinding).filter(AuditFinding.id == approval.finding_id).first()
             if finding and finding.status in {"under_review", "open"}:
-                finding.status = "accepted"
-                finding.updated_by = tenant.user.id
+                self._findings.update_status(
+                    db,
+                    tenant,
+                    finding.id,
+                    status="accepted",
+                    change_reason=comments or "Partner approval",
+                )
+                finding_status_committed = True
 
-        db.commit()
+        if not finding_status_committed:
+            db.commit()
         return self._load_approval(db, approval.id)
 
     def list_finding_approvals(

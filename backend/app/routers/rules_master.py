@@ -59,8 +59,20 @@ def update_rule(
         current.update(validated)
         updates["config_schema"] = current
 
+    content_fields = {
+        "rule_name",
+        "description",
+        "default_score",
+        "is_active",
+        "config_schema",
+    }
+    content_changed = bool(content_fields.intersection(updates))
+
     for field, value in updates.items():
         setattr(rule, field, value)
+
+    if content_changed:
+        rule.rule_content_version = int(rule.rule_content_version or 1) + 1
 
     db.commit()
     db.refresh(rule)

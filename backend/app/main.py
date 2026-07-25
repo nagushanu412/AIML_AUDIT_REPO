@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import SessionLocal, validate_database_connection
+import app.models.organization_id_events  # noqa: F401 — register org_id before_insert
 from app.routers.analytics import router as analytics_router
 from app.routers.auth import router as auth_router
 from app.routers.clients import router as clients_router

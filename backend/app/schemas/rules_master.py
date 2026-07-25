@@ -11,6 +11,7 @@ class RuleMasterOut(BaseModel):
     default_score: int
     is_active: bool
     config_schema: dict
+    rule_content_version: int = 1
 
     model_config = {"from_attributes": True}
 

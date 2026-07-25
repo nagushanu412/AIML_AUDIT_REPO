@@ -15,6 +15,14 @@ def _client_accessible(client: Client, tenant: TenantContext) -> bool:
     return client.user_id == tenant.user.id
 
 
+def _engagement_accessible(engagement: AuditEngagement, tenant: TenantContext) -> bool:
+    """Tenant boundary is engagement.organization_id only (no client.organization_id fallback)."""
+    if tenant.organization_id:
+        return engagement.organization_id == tenant.organization_id
+    client = engagement.client
+    return client is not None and client.user_id == tenant.user.id
+
+
 def get_owned_project(
     db: Session, project_id: uuid.UUID, tenant: TenantContext
 ) -> AuditProject:
@@ -28,7 +36,7 @@ def get_owned_project(
     )
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    if not _client_accessible(project.engagement.client, tenant):
+    if not _engagement_accessible(project.engagement, tenant):
         raise HTTPException(status_code=403, detail="Access denied")
     return project
 
@@ -53,7 +61,7 @@ def get_owned_engagement(
     )
     if not engagement:
         raise HTTPException(status_code=404, detail="Engagement not found")
-    if not _client_accessible(engagement.client, tenant):
+    if not _engagement_accessible(engagement, tenant):
         raise HTTPException(status_code=403, detail="Access denied")
     return engagement
 
@@ -65,30 +73,16 @@ def ensure_engagement_organization_id(
     *,
     persist: bool = True,
 ) -> uuid.UUID:
-    """Resolve organization for legacy engagements missing organization_id."""
-    if engagement.organization_id:
-        return engagement.organization_id
-
-    org_id: uuid.UUID | None = None
-    client = engagement.client
-    if client and client.organization_id:
-        org_id = client.organization_id
-    elif tenant.organization_id:
-        org_id = tenant.organization_id
-
-    if not org_id:
+    """Return engagement.organization_id. No client/tenant fallback after Remediation M1 Step 1."""
+    del db, persist  # retained for call-site compatibility; no longer used for backfill
+    if not engagement.organization_id:
         raise ValueError(
             "This engagement is not linked to an organization. "
-            "Team assignment requires an organization context."
+            "organization_id is required on audit_engagements."
         )
-
-    if persist:
-        engagement.organization_id = org_id
-        if client and not client.organization_id:
-            client.organization_id = org_id
-        db.flush()
-
-    return org_id
+    if tenant.organization_id and engagement.organization_id != tenant.organization_id:
+        raise ValueError("Engagement organization does not match the current tenant.")
+    return engagement.organization_id
 
 
 def client_list_filter(tenant: TenantContext):
@@ -99,15 +93,14 @@ def client_list_filter(tenant: TenantContext):
 
 
 def engagement_list_query(db: Session, tenant: TenantContext):
-    query = db.query(AuditEngagement).join(Client).filter(client_list_filter(tenant))
-    return query
+    query = db.query(AuditEngagement).join(Client)
+    if tenant.organization_id:
+        return query.filter(AuditEngagement.organization_id == tenant.organization_id)
+    return query.filter(Client.user_id == tenant.user.id)
 
 
 def project_list_query(db: Session, tenant: TenantContext):
-    query = (
-        db.query(AuditProject)
-        .join(AuditEngagement)
-        .join(Client)
-        .filter(client_list_filter(tenant))
-    )
-    return query
+    query = db.query(AuditProject).join(AuditEngagement).join(Client)
+    if tenant.organization_id:
+        return query.filter(AuditEngagement.organization_id == tenant.organization_id)
+    return query.filter(Client.user_id == tenant.user.id)

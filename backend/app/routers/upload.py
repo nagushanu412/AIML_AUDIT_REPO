@@ -36,6 +36,8 @@ async def upload_journal_entries(
     legacy_adapter.validate_size(content)
     try:
         return legacy_adapter.journal_upload(db, tenant, parsed_project_id, content)
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

@@ -15,6 +15,7 @@ from app.deps import get_tenant_context
 from app.models.audit import AuditEngagement, AuditProject, Client, Report
 from app.routers.errors import handle_service_error
 from app.schemas.analytics import FindingOut, ReportOut
+from app.services.evidence_gate import EvidenceGateViolation
 from app.schemas.generic_modules import (
     GenericFindingsResponse,
     GenericReportGenerateResponse,
@@ -174,6 +175,8 @@ async def upload_module_file(
             message=result.message,
             extras=result.extras,
         )
+    except HTTPException:
+        raise
     except (ValueError, PermissionError) as exc:
         raise _handle_error(exc) from exc
     except Exception as exc:
@@ -201,6 +204,8 @@ def run_module_rules(
             rule_summary=result.rule_summary,
             message=result.message,
         )
+    except HTTPException:
+        raise
     except (ValueError, PermissionError) as exc:
         raise _handle_error(exc) from exc
     except Exception as exc:
@@ -229,6 +234,10 @@ def run_module_risk(
             low_risk=result.low_risk,
             message=result.message,
         )
+    except HTTPException:
+        raise
+    except EvidenceGateViolation as exc:
+        raise _handle_error(exc) from exc
     except (ValueError, PermissionError) as exc:
         raise _handle_error(exc) from exc
     except Exception as exc:

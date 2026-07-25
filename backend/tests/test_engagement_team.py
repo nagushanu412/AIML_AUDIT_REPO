@@ -45,13 +45,15 @@ def test_engagement_auditor_cannot_approve():
 def test_assign_rejects_invalid_role():
     service = EngagementTeamService()
     db = MagicMock()
+    org_id = uuid.uuid4()
     tenant = MagicMock()
     tenant.member_role = "audit_manager"
     tenant.user.id = uuid.uuid4()
+    tenant.organization_id = org_id
 
     with patch(
         "app.services.engagement_team_service.get_owned_engagement",
-        return_value=MagicMock(id=uuid.uuid4(), organization_id=uuid.uuid4()),
+        return_value=MagicMock(id=uuid.uuid4(), organization_id=org_id),
     ):
         with pytest.raises(ValueError, match="Invalid engagement team role"):
             service.assign_member(
@@ -119,13 +121,36 @@ def test_history_rejects_invalid_action():
             )
 
 
-def test_ensure_engagement_organization_from_tenant():
+def test_ensure_engagement_organization_requires_engagement_org():
     from datetime import date
 
     from app.models.audit import AuditEngagement, Client
     from app.services.project_access import ensure_engagement_organization_id
 
     org_id = uuid.uuid4()
+    client = Client(id=uuid.uuid4(), name="Test", user_id=uuid.uuid4(), organization_id=org_id)
+    engagement = AuditEngagement(
+        id=uuid.uuid4(),
+        client_id=client.id,
+        client=client,
+        organization_id=org_id,
+        financial_year="FY 2026-27",
+        financial_year_end=date(2027, 3, 31),
+    )
+    tenant = MagicMock()
+    tenant.organization_id = org_id
+    db = MagicMock()
+
+    resolved = ensure_engagement_organization_id(db, engagement, tenant)
+    assert resolved == org_id
+
+
+def test_ensure_engagement_organization_rejects_missing_org():
+    from datetime import date
+
+    from app.models.audit import AuditEngagement, Client
+    from app.services.project_access import ensure_engagement_organization_id
+
     client = Client(id=uuid.uuid4(), name="Test", user_id=uuid.uuid4(), organization_id=None)
     engagement = AuditEngagement(
         id=uuid.uuid4(),
@@ -136,10 +161,8 @@ def test_ensure_engagement_organization_from_tenant():
         financial_year_end=date(2027, 3, 31),
     )
     tenant = MagicMock()
-    tenant.organization_id = org_id
+    tenant.organization_id = uuid.uuid4()
     db = MagicMock()
 
-    resolved = ensure_engagement_organization_id(db, engagement, tenant)
-    assert resolved == org_id
-    assert engagement.organization_id == org_id
-    db.flush.assert_called_once()
+    with pytest.raises(ValueError, match="not linked to an organization"):
+        ensure_engagement_organization_id(db, engagement, tenant)

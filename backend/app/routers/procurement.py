@@ -14,6 +14,8 @@ from app.schemas.procurement import (
     ProcurementRunRulesResponse,
     ProcurementUploadResponse,
 )
+from app.routers.errors import handle_service_error
+from app.services.evidence_gate import EvidenceGateViolation
 from app.services.module_framework.legacy_adapter import DEPRECATION_HEADERS, MODULE_CODES, legacy_adapter
 from app.services.project_access import get_owned_project
 from app.services.tenant_context import TenantContext
@@ -86,6 +88,10 @@ def run_procurement_risk(
             db, tenant, MODULE_CODES["procurement"], project_id
         )
         return ProcurementRunRiskResponse(**result)
+    except HTTPException:
+        raise
+    except EvidenceGateViolation as exc:
+        raise handle_service_error(exc) from exc
     except Exception as exc:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(exc)) from exc

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -12,6 +12,7 @@ from app.services.finding_lifecycle_constants import (
     FINDING_REOPEN_ROLES,
     FINDING_STATUSES,
     FINDING_UPDATE_ROLES,
+    PRE_DECISION_STATUSES,
     REMEDIATION_STATUSES,
     STATUS_TRANSITIONS,
 )
@@ -118,6 +119,12 @@ class FindingLifecycleService:
 
         finding.status = new_status
         finding.updated_by = tenant.user.id
+        if new_status in PRE_DECISION_STATUSES:
+            finding.reviewed_by = None
+            finding.reviewed_at = None
+        else:
+            finding.reviewed_by = tenant.user.id
+            finding.reviewed_at = datetime.now(timezone.utc)
         db.commit()
         return self._load(db, finding.id)
 
@@ -334,11 +341,14 @@ class FindingLifecycleService:
             "impact": finding.impact,
             "recommendation": finding.recommendation,
             "affected_count": finding.affected_count,
+            "rule_content_version": finding.rule_content_version,
             "status": finding.status or "open",
             "management_response": finding.management_response,
             "remediation_status": finding.remediation_status or "not_started",
             "remediation_notes": finding.remediation_notes,
             "remediation_due_date": finding.remediation_due_date,
+            "reviewed_by": finding.reviewed_by,
+            "reviewed_at": finding.reviewed_at,
             "updated_by": finding.updated_by,
             "created_at": finding.created_at,
             "updated_at": finding.updated_at,

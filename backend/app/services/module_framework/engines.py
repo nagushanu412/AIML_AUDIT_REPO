@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models.audit import AuditModuleCatalog, AuditProject, ModuleAnalysisRun, Report
+from app.services.evidence_gate import assert_project_findings_have_evidence
 from app.services.module_framework.llm_provider import LLMRequest, get_llm_provider
 from app.services.module_framework.protocol import (
     AnalysisPipelineResult,
@@ -85,6 +86,8 @@ class RiskEngineService:
         self, db: Session, project_id: uuid.UUID, provider: ModuleProvider
     ):
         assert_project_allows_mutation(db, project_id)
+        # Remediation M2: block risk scoring when any finding lacks evidence_links
+        assert_project_findings_have_evidence(db, project_id)
         return provider.run_risk(db, project_id)
 
 

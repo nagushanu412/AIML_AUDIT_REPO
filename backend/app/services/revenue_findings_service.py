@@ -100,7 +100,8 @@ def generate_revenue_findings(db: Session, project_id: uuid.UUID) -> list[AuditF
                     "recommendation", "Perform substantive revenue procedures on flagged invoices."
                 ),
                 affected_count=len(items),
-                journal_entry_ids=invoice_ids,
+                source_record_ids=invoice_ids,
+                rule_content_version=rule.rule_content_version if rule else None,
             )
         )
 

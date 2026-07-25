@@ -214,10 +214,11 @@ class FeatureFlag(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     flag_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+    organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=True,
+        nullable=False,
+        index=True,
     )
     module_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -247,6 +248,12 @@ class EngagementEnabledModule(Base):
         nullable=False,
         index=True,
     )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     module_catalog_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("audit_module_catalog.id", ondelete="CASCADE"),
@@ -272,10 +279,10 @@ class AuditLog(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+    organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("organizations.id", ondelete="SET NULL"),
-        nullable=True,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
         index=True,
     )
     user_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -385,10 +392,10 @@ class Client(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+    organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -421,10 +428,10 @@ class AuditEngagement(Base):
     client_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("clients.id", ondelete="CASCADE"), nullable=False
     )
-    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+    organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
     financial_year: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -492,6 +499,12 @@ class EngagementTeamMember(Base):
         UUID(as_uuid=True),
         ForeignKey("organization_members.id", ondelete="SET NULL"),
         nullable=True,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     role: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
@@ -596,10 +609,11 @@ class Evidence(Base):
     analysis_run_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )
-    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+    organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("organizations.id", ondelete="SET NULL"),
-        nullable=True,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     root_evidence_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
@@ -675,10 +689,11 @@ class Workpaper(Base):
     analysis_run_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )
-    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+    organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("organizations.id", ondelete="SET NULL"),
-        nullable=True,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     root_workpaper_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
@@ -744,6 +759,12 @@ class EvidenceLink(Base):
         UUID(as_uuid=True),
         ForeignKey("audit_engagements.id", ondelete="CASCADE"),
         nullable=False,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     finding_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
@@ -833,6 +854,12 @@ class JournalEntry(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
     )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     journal_id: Mapped[str] = mapped_column(String(100), nullable=False)
     posting_date: Mapped[date] = mapped_column(Date, nullable=False)
     account_code: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -864,6 +891,7 @@ class RuleMaster(Base):
     default_score: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     config_schema: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    rule_content_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
 
     rule_results: Mapped[list["RuleResult"]] = relationship(back_populates="rule")
@@ -877,6 +905,12 @@ class RuleResult(Base):
     )
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     journal_entry_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("journal_entries.id", ondelete="CASCADE"), nullable=False
@@ -910,6 +944,12 @@ class RiskScore(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
     )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     journal_entry_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("journal_entries.id", ondelete="CASCADE"), nullable=False
     )
@@ -936,6 +976,12 @@ class AuditFinding(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
     )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     rule_code: Mapped[str] = mapped_column(String(50), nullable=False)
     finding_title: Mapped[str] = mapped_column(String(255), nullable=False)
     observation: Mapped[str] = mapped_column(Text, nullable=False)
@@ -943,7 +989,8 @@ class AuditFinding(Base):
     impact: Mapped[str] = mapped_column(Text, nullable=False)
     recommendation: Mapped[str] = mapped_column(Text, nullable=False)
     affected_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    journal_entry_ids: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    source_record_ids: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    rule_content_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="open")
     management_response: Mapped[str | None] = mapped_column(Text, nullable=True)
     remediation_status: Mapped[str] = mapped_column(
@@ -951,6 +998,13 @@ class AuditFinding(Base):
     )
     remediation_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     remediation_due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(nullable=True)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -966,6 +1020,7 @@ class AuditFinding(Base):
         back_populates="finding",
         cascade="all, delete-orphan",
     )
+    reviewer: Mapped["User | None"] = relationship(foreign_keys=[reviewed_by])
 
 
 class FindingStatusHistory(Base):
@@ -1031,10 +1086,11 @@ class FindingRelationship(Base):
         nullable=False,
         index=True,
     )
-    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+    organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("organizations.id", ondelete="SET NULL"),
-        nullable=True,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     source_finding_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -1079,6 +1135,12 @@ class ReviewComment(Base):
     engagement_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -1136,6 +1198,12 @@ class Approval(Base):
     engagement_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("audit_engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -1203,10 +1271,11 @@ class ModuleAnalysisRun(Base):
         ForeignKey("audit_module_catalog.id", ondelete="SET NULL"),
         nullable=True,
     )
-    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+    organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("organizations.id", ondelete="SET NULL"),
-        nullable=True,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     run_name: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft")
@@ -1286,6 +1355,12 @@ class Report(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
     )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     report_type: Mapped[str] = mapped_column(String(50), nullable=False)
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     file_path: Mapped[str | None] = mapped_column(Text)
@@ -1307,6 +1382,12 @@ class RevenueInvoice(Base):
     )
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     invoice_no: Mapped[str] = mapped_column(String(100), nullable=False)
     invoice_date: Mapped[date] = mapped_column(Date, nullable=False)
@@ -1336,6 +1417,12 @@ class RevenueRuleResult(Base):
     )
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     revenue_invoice_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("revenue_invoices.id", ondelete="CASCADE"), nullable=False
@@ -1369,6 +1456,12 @@ class RevenueRiskScore(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
     )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     revenue_invoice_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("revenue_invoices.id", ondelete="CASCADE"), nullable=False
     )
@@ -1389,6 +1482,12 @@ class ProcurementInvoice(Base):
     )
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     invoice_no: Mapped[str] = mapped_column(String(100), nullable=False)
     invoice_date: Mapped[date] = mapped_column(Date, nullable=False)
@@ -1419,6 +1518,12 @@ class ProcurementRuleResult(Base):
     )
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     procurement_invoice_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("procurement_invoices.id", ondelete="CASCADE"), nullable=False
@@ -1453,6 +1558,12 @@ class ProcurementRiskScore(Base):
     )
     project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("audit_projects.id", ondelete="CASCADE"), nullable=False
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     procurement_invoice_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("procurement_invoices.id", ondelete="CASCADE"), nullable=False
