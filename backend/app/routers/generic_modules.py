@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Annotated
 from uuid import UUID
 
@@ -391,7 +390,16 @@ def download_module_report(
     )
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
-    if not report.file_path or not Path(report.file_path).is_file():
+    from io import BytesIO
+
+    from fastapi.responses import StreamingResponse
+
+    from app.services.storage.download import resolve_stored_file
+
+    if not report.file_path:
+        raise HTTPException(status_code=404, detail="Report file not available")
+    path, content = resolve_stored_file(report.file_path)
+    if path is None and content is None:
         raise HTTPException(status_code=404, detail="Report file not available")
 
     media = "application/octet-stream"
@@ -402,8 +410,16 @@ def download_module_report(
     elif report.file_name.endswith(".json"):
         media = "application/json"
 
-    return FileResponse(
-        path=report.file_path,
-        filename=report.file_name,
+    if path is not None:
+        return FileResponse(
+            path=path,
+            filename=report.file_name,
+            media_type=media,
+        )
+    return StreamingResponse(
+        BytesIO(content or b""),
         media_type=media,
+        headers={
+            "Content-Disposition": f'attachment; filename="{report.file_name}"'
+        },
     )

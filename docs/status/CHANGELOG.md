@@ -8,6 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed — Remediation M2 follow-up: evidence links at finding generation
+- `generate_findings` / `generate_revenue_findings` / `generate_procurement_findings` now create `evidence` + `evidence_links` in the same transaction as each new finding (mirrors migration 026 source-record linking)
+- Prevents second Run Analysis from hitting `EvidenceGateViolation` after first-run findings were created bare
+- Pipeline order (risk before findings) left unchanged — documented as known low-priority debt vs Constitution Rule→Evidence→Risk (see Remediation Plan §1.5)
+
+### Proposed — Remediation Milestone 5 Part A: Legacy API sunset condition (awaiting confirmation)
+
+> **Not a locked decision.** Proposal recorded during Remediation M5 Part A ADR-005 sunset check. Do not remove legacy routes until this is explicitly confirmed and both gates are met.
+
+- **Advertised header date (already in code):** `Sunset: 2026-12-31` on legacy mutation endpoints
+- **Removal rule (proposed):** remove legacy `/upload`, `/run-rules`, `/run-risk`, `/revenue/*`, `/procurement/*` (and journal analytics aliases) only when **both** are true — i.e. **whichever comes last**, not first:
+  1. The advertised sunset date **2026-12-31** has passed, **and**
+  2. No production caller (frontend or otherwise) still depends on those legacy routes — Wave 1 + Wave 2 modules (and the three shipped modules’ UI/clients) use only `/modules/{code}/*`
+- **Explicitly not allowed:** removing legacy routes on the date alone while Wave 1/2 (or any production client) still depends on them
+- Optional later cleanup (out of scope for this proposal): emit deprecation headers on early error responses (422/exception paths), not only on successful handler completion
+
 ### Added — Phase 3 Milestone 2: Module Migration
 - Legacy routers (`/upload`, `/run-rules`, `/revenue/*`, `/procurement/*`, analytics) shimmed to generic engines
 - `LegacyModuleAdapter` centralizes legacy → framework delegation

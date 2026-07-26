@@ -5,10 +5,13 @@ import uuid
 from pathlib import Path
 
 from app.config import get_settings
+from app.services.storage import get_storage_backend
+from app.services.storage.local import GENERATED_REPORTS_DIR, STORAGE_ROOT
 
-STORAGE_ROOT = Path(__file__).resolve().parents[2] / "storage"
+# Re-export historical constants for any imports that still expect them.
 EVIDENCE_DIR = STORAGE_ROOT / "evidence"
 WORKPAPERS_DIR = STORAGE_ROOT / "workpapers"
+REPORTS_DIR = STORAGE_ROOT / "reports"
 
 ALLOWED_EVIDENCE_EXTENSIONS = frozenset(
     {
@@ -35,10 +38,6 @@ def compute_file_hash(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-def _ensure_dir(path: Path) -> None:
-    path.mkdir(parents=True, exist_ok=True)
-
-
 def save_evidence_file(
     engagement_id: uuid.UUID,
     evidence_id: uuid.UUID,
@@ -56,15 +55,10 @@ def save_evidence_file(
         allowed = ", ".join(sorted(ALLOWED_EVIDENCE_EXTENSIONS))
         raise ValueError(f"Unsupported file type. Allowed: {allowed}")
 
-    target_dir = EVIDENCE_DIR / str(engagement_id)
-    _ensure_dir(target_dir)
     safe_name = f"{evidence_id}{ext}"
-    target_path = target_dir / safe_name
-    target_path.write_bytes(content)
-
     storage_key = f"evidence/{engagement_id}/{safe_name}"
-    file_hash = compute_file_hash(content)
-    return storage_key, file_hash
+    get_storage_backend().save(storage_key, content)
+    return storage_key, compute_file_hash(content)
 
 
 def save_workpaper_file(
@@ -84,30 +78,63 @@ def save_workpaper_file(
         allowed = ", ".join(sorted(ALLOWED_WORKPAPER_EXTENSIONS))
         raise ValueError(f"Unsupported file type. Allowed: {allowed}")
 
-    target_dir = WORKPAPERS_DIR / str(engagement_id)
-    _ensure_dir(target_dir)
     safe_name = f"{workpaper_id}{ext}"
-    target_path = target_dir / safe_name
-    target_path.write_bytes(content)
-
     storage_key = f"workpapers/{engagement_id}/{safe_name}"
-    file_hash = compute_file_hash(content)
-    return storage_key, file_hash
+    get_storage_backend().save(storage_key, content)
+    return storage_key, compute_file_hash(content)
 
 
 def resolve_storage_path(storage_key: str) -> Path:
-    """Resolve a storage key to absolute filesystem path (local adapter)."""
-    if storage_key.startswith("evidence/"):
-        relative = storage_key.removeprefix("evidence/")
-        return EVIDENCE_DIR / relative
-    if storage_key.startswith("workpapers/"):
-        relative = storage_key.removeprefix("workpapers/")
-        return WORKPAPERS_DIR / relative
-    raise ValueError("Invalid storage key.")
+    """Resolve a storage key to a local filesystem path (local backend only)."""
+    backend = get_storage_backend()
+    path = backend.local_path(storage_key)
+    if path is None:
+        raise ValueError(
+            "Storage key cannot be resolved to a local path with the active backend. "
+            "Use storage.read() for object-store backends."
+        )
+    # Preserve historical validation for unexpected key prefixes on local layout.
+    if not (
+        storage_key.startswith("evidence/")
+        or storage_key.startswith("workpapers/")
+        or storage_key.startswith("reports/")
+        or storage_key.startswith("generated_reports/")
+    ):
+        raise ValueError("Invalid storage key.")
+    return path
 
 
 def file_exists(storage_key: str) -> bool:
     try:
-        return resolve_storage_path(storage_key).is_file()
+        if not (
+            storage_key.startswith("evidence/")
+            or storage_key.startswith("workpapers/")
+            or storage_key.startswith("reports/")
+            or storage_key.startswith("generated_reports/")
+        ):
+            return False
+        return get_storage_backend().exists(storage_key)
     except ValueError:
         return False
+
+
+def read_storage_bytes(storage_key: str) -> bytes:
+    return get_storage_backend().read(storage_key)
+
+
+# Keep import surface for report_export migration notes.
+__all__ = [
+    "ALLOWED_EVIDENCE_EXTENSIONS",
+    "ALLOWED_WORKPAPER_EXTENSIONS",
+    "EVIDENCE_DIR",
+    "WORKPAPERS_DIR",
+    "REPORTS_DIR",
+    "GENERATED_REPORTS_DIR",
+    "STORAGE_ROOT",
+    "compute_file_hash",
+    "save_evidence_file",
+    "save_workpaper_file",
+    "resolve_storage_path",
+    "file_exists",
+    "read_storage_bytes",
+]

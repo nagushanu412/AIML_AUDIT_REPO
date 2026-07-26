@@ -2,6 +2,7 @@
 
 from app.services.analysis_run_service import RUN_STATUSES, SUGGESTED_RUN_NAMES
 from app.services.storage_adapter import LocalBlobStorageAdapter, get_storage_adapter
+from app.services.storage import reset_storage_backend_cache
 
 
 def test_run_statuses_include_lifecycle():
@@ -14,5 +15,6 @@ def test_suggested_run_names():
 
 
 def test_local_storage_adapter_default():
+    reset_storage_backend_cache()
     adapter = get_storage_adapter()
     assert isinstance(adapter, LocalBlobStorageAdapter)

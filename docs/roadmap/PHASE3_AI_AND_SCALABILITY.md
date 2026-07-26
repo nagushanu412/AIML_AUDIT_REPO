@@ -41,7 +41,7 @@ Scale platform to 100–10,000+ firms, implement generic module architecture, ad
 |------|-------------|
 | Module plugin registry | Register 22 modules |
 | Generic module router | `/modules/{code}/*` |
-| Deprecate legacy prefixes | Sunset plan |
+| Deprecate legacy prefixes | **Proposed (awaiting confirmation):** remove only when **both** are true (whichever comes **last**): (1) `Sunset` date 2026-12-31 has passed, **and** (2) no production caller still depends on legacy routes (Wave 1+2 / shipped UIs on `/modules/{code}/*` only). Do not remove on the date alone. See CHANGELOG [Unreleased] + Remediation Plan Priority 4. |
 | AIService | OpenAI/Azure with PII redaction |
 | Stripe webhooks | Automated billing |
 | Rate limiting | Per org API limits |

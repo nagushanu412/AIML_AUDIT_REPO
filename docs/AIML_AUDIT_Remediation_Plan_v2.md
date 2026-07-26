@@ -192,6 +192,32 @@ since the finding-to-source-row link already exists.
 
 **Acceptance:** `SELECT count(*) FROM audit_findings f LEFT JOIN evidence_links e ON e.finding_id = f.id WHERE e.id IS NULL` returns 0.
 
+### 1.4 Follow-up — auto-create `evidence_links` at finding generation (Part A)
+
+**Gap found after M2:** the evidence gate correctly blocks risk scoring when findings
+lack `evidence_links`, but the UI / legacy path runs **risk before generate-findings**.
+On a first Run Analysis there are no findings yet (gate is a no-op); `generate_findings`
+then created bare findings. A second Run Analysis hit `EvidenceGateViolation`.
+
+**Fix (Part A — done):** `generate_findings`, `generate_revenue_findings`, and
+`generate_procurement_findings` create placeholder `evidence` + `evidence_links` in the
+**same transaction** as each new finding (same source-record relationship as migration
+026). No finding can exist without evidence after commit.
+
+### 1.5 Known debt — pipeline order vs Constitution (Part B deferred)
+
+**Not a bug once Part A is in place.** The Product Constitution states the conceptual
+order Rule → Evidence → Risk. Both the legacy UI sequence and `AnalysisEngine` still
+run risk scoring **before** finding-generation:
+
+- UI / legacy: upload → run-rules → **run-risk** → generate-findings
+- `AnalysisEngine`: validation → rules → **risk** → findings → …
+
+This no longer causes a functional failure (every finding has evidence at creation, so
+a re-run’s risk step sees linked evidence). Reordering to literally match the Constitution
+(Rule → Evidence/Findings → Risk) is **low-priority technical debt**, not a defect.
+Do not treat this as a P0/P1 remediation item.
+
 ---
 
 ## Priority 2 — Auditor Decision Clarity
@@ -269,6 +295,16 @@ production risk and should not be forgotten:
   `/modules/{code}/upload` means four code paths doing the same job. ADR-005 already
   plans deprecation headers and a 2-release-cycle sunset for these — confirm that
   sunset is actually scheduled, not just headers added and forgotten, before module four.
+
+  **Proposed sunset condition (Remediation M5 Part A — awaiting confirmation; not locked):**
+  Legacy mutation routes may be removed only when **both** gates are true
+  (**whichever comes last**, not first):
+  1. Advertised `Sunset` date **2026-12-31** has passed, **and**
+  2. No production caller (frontend or otherwise) still depends on legacy paths —
+     Wave 1 + Wave 2 modules and shipped-module clients use only `/modules/{code}/*`.
+  Do **not** remove legacy routes on the date alone if Wave 1/2 (or any production
+  client) still depends on them. See also `docs/status/CHANGELOG.md` [Unreleased]
+  proposal note.
 
 ---
 

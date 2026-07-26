@@ -8,11 +8,8 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.audit import Workpaper
-from app.services.file_storage_service import (
-    file_exists,
-    resolve_storage_path,
-    save_workpaper_file,
-)
+from app.services.file_storage_service import save_workpaper_file
+from app.services.storage import get_storage_backend
 from app.services.project_access import get_owned_engagement, get_owned_project
 from app.services.run_lock_guard import assert_project_allows_mutation, assert_run_allows_mutation
 from app.services.tenant_context import TenantContext
@@ -264,9 +261,13 @@ class WorkpaperService:
     ):
         engagement = get_owned_engagement(db, engagement_id, tenant)
         workpaper = self._get_any(db, engagement.id, workpaper_id)
-        if not workpaper.storage_key or not file_exists(workpaper.storage_key):
+        backend = get_storage_backend()
+        if not workpaper.storage_key or not backend.exists(workpaper.storage_key):
             raise ValueError("Workpaper file not found in storage.")
-        return resolve_storage_path(workpaper.storage_key), workpaper
+        path = backend.local_path(workpaper.storage_key)
+        if path is not None and path.is_file():
+            return path, None, workpaper
+        return None, backend.read(workpaper.storage_key), workpaper
 
     @staticmethod
     def _assert_can_manage(tenant: TenantContext) -> None:

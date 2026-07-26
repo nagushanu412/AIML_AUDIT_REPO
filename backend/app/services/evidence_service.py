@@ -15,11 +15,8 @@ from app.services.evidence_constants import (
     LINK_TYPES,
     LINKED_ENTITY_TYPES,
 )
-from app.services.file_storage_service import (
-    file_exists,
-    resolve_storage_path,
-    save_evidence_file,
-)
+from app.services.file_storage_service import save_evidence_file
+from app.services.storage import get_storage_backend
 from app.services.project_access import get_owned_engagement, get_owned_project
 from app.services.run_lock_guard import assert_project_allows_mutation, assert_run_allows_mutation
 from app.services.tenant_context import TenantContext
@@ -295,9 +292,13 @@ class EvidenceService:
     ):
         engagement = get_owned_engagement(db, engagement_id, tenant)
         evidence = self._get_current_or_any(db, engagement.id, evidence_id)
-        if not file_exists(evidence.storage_key):
+        backend = get_storage_backend()
+        if not evidence.storage_key or not backend.exists(evidence.storage_key):
             raise ValueError("Evidence file not found in storage.")
-        return resolve_storage_path(evidence.storage_key), evidence
+        path = backend.local_path(evidence.storage_key)
+        if path is not None and path.is_file():
+            return path, None, evidence
+        return None, backend.read(evidence.storage_key), evidence
 
     @staticmethod
     def _assert_can_manage(tenant: TenantContext) -> None:

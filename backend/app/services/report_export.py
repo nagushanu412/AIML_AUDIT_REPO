@@ -4,7 +4,6 @@ import json
 import uuid
 from datetime import datetime, timezone
 from io import BytesIO
-from pathlib import Path
 
 from openpyxl import Workbook
 from reportlab.lib.pagesizes import A4
@@ -22,8 +21,11 @@ from app.models.audit import (
     RiskScore,
     RuleResult,
 )
+from app.services.storage import get_storage_backend
+from app.services.storage.local import GENERATED_REPORTS_DIR
 
-REPORTS_DIR = Path(__file__).resolve().parents[2] / "generated_reports"
+# Historical constant — local backend still writes under this directory.
+REPORTS_DIR = GENERATED_REPORTS_DIR
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -192,7 +194,7 @@ def _build_summary(db: Session, project: AuditProject) -> dict:
     }
 
 
-def _write_excel(path: Path, summary: dict) -> None:
+def _excel_bytes(summary: dict) -> bytes:
     wb = Workbook()
     ws = wb.active
     ws.title = "Summary"
@@ -219,12 +221,16 @@ def _write_excel(path: Path, summary: dict) -> None:
             f["observation"],
             f["recommendation"],
         ])
-    wb.save(path)
+    buf = BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
 
 
-def _write_pdf(path: Path, summary: dict) -> None:
-    c = canvas.Canvas(str(path), pagesize=A4)
+def _pdf_bytes(summary: dict) -> bytes:
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4)
     width, height = A4
+    del width
     y = height - 2 * cm
     lines = [
         "AIML Audit Analytics — Journal Audit Report",
@@ -246,10 +252,11 @@ def _write_pdf(path: Path, summary: dict) -> None:
             c.showPage()
             y = height - 2 * cm
     c.save()
+    return buf.getvalue()
 
 
-def _write_json(path: Path, summary: dict) -> None:
-    path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+def _json_bytes(summary: dict) -> bytes:
+    return json.dumps(summary, indent=2).encode("utf-8")
 
 
 def generate_report_file(
@@ -257,7 +264,7 @@ def generate_report_file(
     project: AuditProject,
     report_type: str,
 ) -> tuple[str, str, dict]:
-    """Returns (file_name, absolute_path, metadata)."""
+    """Returns (file_name, storage reference for DB, metadata)."""
     summary = _build_summary(db, project)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     safe_name = project.name.replace(" ", "_")
@@ -270,20 +277,16 @@ def generate_report_file(
         "procurement_audit_excel",
         "procurement_working_paper",
     ):
-        ext = "xlsx"
         file_name = f"{safe_name}_{report_type}_{timestamp}.xlsx"
-        path = REPORTS_DIR / file_name
-        _write_excel(path, summary)
+        content = _excel_bytes(summary)
     elif report_type in ("journal_audit_pdf", "revenue_audit_pdf", "procurement_audit_pdf"):
-        ext = "pdf"
         file_name = f"{safe_name}_{report_type}_{timestamp}.pdf"
-        path = REPORTS_DIR / file_name
-        _write_pdf(path, summary)
+        content = _pdf_bytes(summary)
     else:
-        ext = "json"
         file_name = f"{safe_name}_{report_type}_{timestamp}.json"
-        path = REPORTS_DIR / file_name
-        _write_json(path, summary)
+        content = _json_bytes(summary)
 
-    del ext
-    return file_name, str(path), summary
+    key = f"generated_reports/{file_name}"
+    backend = get_storage_backend()
+    backend.save(key, content)
+    return file_name, backend.reference_for_db(key), summary

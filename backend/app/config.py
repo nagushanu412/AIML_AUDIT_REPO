@@ -55,6 +55,24 @@ class Settings(BaseSettings):
     )
     demo_user_password: str = Field(default="AuditAI2026!", alias="DEMO_USER_PASSWORD")
     max_upload_mb: int = Field(default=10, alias="MAX_UPLOAD_MB")
+    storage_backend: str = Field(default="local", alias="STORAGE_BACKEND")
+    s3_bucket: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("S3_BUCKET", "STORAGE_S3_BUCKET"),
+    )
+    s3_region: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("S3_REGION", "AWS_REGION", "AWS_DEFAULT_REGION"),
+    )
+    s3_endpoint_url: str | None = Field(default=None, alias="S3_ENDPOINT_URL")
+    s3_access_key_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("S3_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID"),
+    )
+    s3_secret_access_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("S3_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY"),
+    )
     frontend_url: str = Field(
         default="http://localhost:3000",
         alias="FRONTEND_URL",

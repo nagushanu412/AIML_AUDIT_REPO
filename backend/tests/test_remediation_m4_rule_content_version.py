@@ -87,7 +87,10 @@ def test_generate_findings_snapshots_rule_content_version():
         rule_model=RuleMaster, result_model=RuleResult, rule=rule, violation=violation
     )
 
-    with patch("app.services.findings_service.FINDING_TEMPLATES", {"LARGE_VALUE": {}}):
+    with (
+        patch("app.services.findings_service.FINDING_TEMPLATES", {"LARGE_VALUE": {}}),
+        patch("app.services.findings_service.attach_auto_evidence_for_finding"),
+    ):
         findings = generate_findings(db, uuid.uuid4())
 
     assert len(findings) == 1
@@ -116,9 +119,14 @@ def test_generate_revenue_findings_snapshots_rule_content_version():
         violation=violation,
     )
 
-    with patch(
-        "app.services.revenue_findings_service.REVENUE_FINDING_TEMPLATES",
-        {"REV_CUTOFF": {}},
+    with (
+        patch(
+            "app.services.revenue_findings_service.REVENUE_FINDING_TEMPLATES",
+            {"REV_CUTOFF": {}},
+        ),
+        patch(
+            "app.services.revenue_findings_service.attach_auto_evidence_for_finding"
+        ),
     ):
         findings = generate_revenue_findings(db, uuid.uuid4())
 
@@ -146,9 +154,14 @@ def test_generate_procurement_findings_snapshots_rule_content_version():
         violation=violation,
     )
 
-    with patch(
-        "app.services.procurement_findings_service.PROCUREMENT_FINDING_TEMPLATES",
-        {"PROC_DUPLICATE_PAYMENT": {}},
+    with (
+        patch(
+            "app.services.procurement_findings_service.PROCUREMENT_FINDING_TEMPLATES",
+            {"PROC_DUPLICATE_PAYMENT": {}},
+        ),
+        patch(
+            "app.services.procurement_findings_service.attach_auto_evidence_for_finding"
+        ),
     ):
         findings = generate_procurement_findings(db, uuid.uuid4())
 
@@ -233,7 +246,10 @@ def test_bump_then_generate_leaves_prior_finding_stamp_unchanged():
     gen_db.query.side_effect = _query_side_effect(
         rule_model=RuleMaster, result_model=RuleResult, rule=rule, violation=violation
     )
-    with patch("app.services.findings_service.FINDING_TEMPLATES", {"LARGE_VALUE": {}}):
+    with (
+        patch("app.services.findings_service.FINDING_TEMPLATES", {"LARGE_VALUE": {}}),
+        patch("app.services.findings_service.attach_auto_evidence_for_finding"),
+    ):
         new_findings = generate_findings(gen_db, uuid.uuid4())
 
     assert prior_finding.rule_content_version == 1

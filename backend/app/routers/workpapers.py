@@ -206,13 +206,25 @@ def download_workpaper(
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
     try:
-        path, workpaper = _workpapers.get_download_path(
+        path, content, workpaper = _workpapers.get_download_path(
             db, tenant, engagement_id, workpaper_id
         )
-        return FileResponse(
-            path,
-            filename=workpaper.file_name or "workpaper",
-            media_type=workpaper.content_type or "application/octet-stream",
+        media = workpaper.content_type or "application/octet-stream"
+        filename = workpaper.file_name or "workpaper"
+        if path is not None:
+            return FileResponse(
+                path,
+                filename=filename,
+                media_type=media,
+            )
+        from io import BytesIO
+
+        from fastapi.responses import StreamingResponse
+
+        return StreamingResponse(
+            BytesIO(content or b""),
+            media_type=media,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
     except (ValueError, PermissionError) as exc:
         raise _handle_error(exc) from exc

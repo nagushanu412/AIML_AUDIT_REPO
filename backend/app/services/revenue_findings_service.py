@@ -6,6 +6,7 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 
 from app.models.audit import AuditFinding, RevenueRuleResult, RuleMaster
+from app.services.finding_evidence_linker import attach_auto_evidence_for_finding
 
 
 REVENUE_FINDING_TEMPLATES: dict[str, dict] = {
@@ -106,5 +107,8 @@ def generate_revenue_findings(db: Session, project_id: uuid.UUID) -> list[AuditF
         )
 
     db.add_all(findings)
+    db.flush()
+    for finding in findings:
+        attach_auto_evidence_for_finding(db, finding)
     db.commit()
     return findings

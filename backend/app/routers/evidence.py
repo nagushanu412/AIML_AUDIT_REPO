@@ -174,13 +174,26 @@ def download_evidence(
     tenant: Annotated[TenantContext, Depends(get_tenant_context)] = None,
 ):
     try:
-        path, evidence = _evidence.get_download_path(
+        path, content, evidence = _evidence.get_download_path(
             db, tenant, engagement_id, evidence_id
         )
-        return FileResponse(
-            path,
-            filename=evidence.file_name,
-            media_type=evidence.content_type or "application/octet-stream",
+        media = evidence.content_type or "application/octet-stream"
+        if path is not None:
+            return FileResponse(
+                path,
+                filename=evidence.file_name,
+                media_type=media,
+            )
+        from io import BytesIO
+
+        from fastapi.responses import StreamingResponse
+
+        return StreamingResponse(
+            BytesIO(content or b""),
+            media_type=media,
+            headers={
+                "Content-Disposition": f'attachment; filename="{evidence.file_name}"'
+            },
         )
     except (ValueError, PermissionError) as exc:
         raise _handle_error(exc) from exc
